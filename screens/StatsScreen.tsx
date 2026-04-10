@@ -1,179 +1,315 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, 
-  ScrollView, Image, Dimensions, ImageBackground, SectionList
-} from 'react-native';
-import { 
-  ChevronLeft, ChevronRight, Calendar, ArrowLeft 
-} from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '../constants/colors';
-import { FONTS, SIZES } from '../constants/theme';
-import { BACKGROUNDS } from '../constants/images';
-import DayDetailScreen from './DayDetailScreen';
-import { Modal } from 'react-native';
-import PostCard from '../components/PostCard';
-import MonthSelector from '../components/MonthSelector';
+import React, { useState, useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Dimensions,
+  ImageBackground,
+  Modal,
+  SectionList,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
+import { FONTS, SIZES } from "../constants/theme";
+import DayDetailScreen from "./DayDetailScreen";
+import MonthSelector from "../components/MonthSelector";
+import MonthlyInsights from "../components/MonthlyInsights";
+import CalendarGrid from "../components/CalendarGrid";
+import { useMood } from "../context/MoodContext";
+import MoodIcon from "../components/MoodIcon";
+import PostCard from "../components/PostCard";
+import SortSelector, { SortOrder } from "../components/SortSelector";
+import { getJournals } from "../lib/storage";
+import { JournalEntry } from "../types/models";
+import EmptyState from "../components/EmptyState";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
-const MOOD_ICONS = [
-  require('../assets/icon/icon1.png'),
-  require('../assets/icon/icon2.png'),
-  require('../assets/icon/icon3.png'),
-  require('../assets/icon/icon4.png'),
-  require('../assets/icon/icon5.png'),
-];
-
-const MOOD_LABELS = ['Rất vui', 'Hạnh phúc', 'Bình thường', 'Buồn', 'Tức giận'];
-
-export default function StatsScreen({ navigation }: { navigation: any }) {
+export default function StatsScreen({ navigation }: any) {
+  const { colors, backgrounds } = useTheme();
+  const { emojis, loading, language, t } = useMood();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
-  const [currentViewTime, setCurrentViewTime] = useState<string | null>(null);
-const [activeTab, setActiveTab] = useState<'Mine' | 'Friends'>('Mine');
+  const [activeTab] = useState<"Mine" | "Friends">("Mine");
+  const [displayMode, setDisplayMode] = useState<"icon" | "image">("icon");
+  const [mainTab, setMainTab] = useState<"Lịch" | "Hành trình">("Lịch");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [journals, setJournals] = useState<JournalEntry[]>([]);
 
+  React.useEffect(() => {
+    const fetchJournals = async () => {
+      const dbJournals = await getJournals();
+      setJournals(dbJournals);
+    };
+    const unsubscribe = navigation.addListener("focus", fetchJournals);
+    return unsubscribe;
+  }, [navigation]);
+
+  const journalSections = useMemo(() => {
+    const grouped: { [key: string]: any[] } = {};
+    journals.forEach((j) => {
+      const d = new Date(j.time);
+      const dateStr = `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
+      
+      if (!grouped[dateStr]) grouped[dateStr] = [];
+      const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
+      
+      grouped[dateStr].push({
+        id: j.id,
+        time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
+        moodIcon: emojiObj ? { uri: emojiObj.image } : null,
+        text: j.description || j.title,
+        image: j.images?.length ? j.images[0] : null,
+        timestamp: d.getTime(),
+      });
+    });
+    
+    return Object.keys(grouped).map((k) => ({
+      title: k,
+      data: grouped[k].sort((a, b) => b.timestamp - a.timestamp),
+    }));
+  }, [journals, emojis]);
+
+  const sortedSections = useMemo(() => {
+    let sections = [...journalSections];
+    if (sortOrder === "newest") {
+      sections.sort((a, b) => new Date(b.title).getTime() - new Date(a.title).getTime());
+    } else {
+      sections.sort((a, b) => new Date(a.title).getTime() - new Date(b.title).getTime());
+    }
+    return sections;
+  }, [journalSections, sortOrder]);
 
   const changeMonth = (offset: number) => {
-    const newDate = new Date(currentDate.setMonth(currentDate.getMonth() + offset));
-    setCurrentDate(new Date(newDate));
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
   };
 
-  // Generate fake data for the current month
+  const mockGallery = useMemo(() => {
+    const imagesArray: any[] = [];
+    journals.forEach((j) => {
+      if (j.images && j.images.length > 0) {
+        const d = new Date(j.time);
+        const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
+        imagesArray.push({
+          id: j.id,
+          date: `${d.getDate()} ${d.toLocaleString("default", { month: "short" })}`,
+          moodIcon: emojiObj ? { uri: emojiObj.image } : null,
+          image: j.images[0],
+          timestamp: d.getTime(),
+        });
+      }
+    });
+    return imagesArray.sort((a, b) => b.timestamp - a.timestamp);
+  }, [journals, emojis]);
+
   const calendarData = useMemo(() => {
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-    return Array.from({ length: daysInMonth }, (_, i) => ({
-      day: i + 1,
-      moodIndex: Math.floor(Math.random() * 5)
-    }));
-  }, [currentDate]);
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      const jForDay = journals.find((j) => {
+        const jd = new Date(j.time);
+        return (
+          jd.getDate() === day &&
+          jd.getMonth() === currentDate.getMonth() &&
+          jd.getFullYear() === currentDate.getFullYear()
+        );
+      });
+      return {
+        day,
+        moodIndex: jForDay ? emojis.findIndex((e) => e.id === jForDay.typeEmoji) : -1,
+      };
+    });
+  }, [currentDate, journals, emojis]);
 
   const stats = useMemo(() => {
-    const counts = [0, 0, 0, 0, 0];
-    calendarData.forEach(item => counts[item.moodIndex]++);
+    if (emojis.length === 0) return [];
+    const counts = new Array(emojis.length).fill(0);
+    journals.forEach((item) => {
+      const d = new Date(item.time);
+      if (d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()) {
+        const idx = emojis.findIndex((e) => e.id === item.typeEmoji);
+        if (idx >= 0) counts[idx]++;
+      }
+    });
     return counts;
-  }, [calendarData]);
+  }, [journals, emojis, currentDate]);
 
-  const mockGallery = [
-    { id: '1', date: 'Jun 2', moodIcon: MOOD_ICONS[0], image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=60' },
-    { id: '2', date: 'Jun 7', moodIcon: MOOD_ICONS[1], image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=500&auto=format&fit=crop&q=60' },
-    { id: '3', date: 'Jun 14', moodIcon: MOOD_ICONS[4], image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&auto=format&fit=crop&q=60' },
-    { id: '4', date: 'Jun 15', moodIcon: MOOD_ICONS[3], image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&auto=format&fit=crop&q=60' },
-  ];
+  const statsTotal = useMemo(() => stats, [stats]);
 
-
-
-  const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
-
-
+  const totalEntries = useMemo(() => {
+    return statsTotal.reduce((sum, count) => sum + count, 0);
+  }, [statsTotal]);
 
   return (
-    <ImageBackground 
-      source={BACKGROUNDS.stats} 
-      style={styles.container}
-    >
+    <ImageBackground source={backgrounds.stats} style={[styles.container, { backgroundColor: colors.background.main }]}>
       <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
         <View style={styles.header}>
-
-          <Text style={styles.headerTitle}>Monthly Mood Insights</Text>
-
+          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>{t('stats_title')}</Text>
         </View>
-        
 
-        <MonthSelector
-          currentDate={currentDate}
-          activeTab={activeTab}
-          currentViewTime={currentViewTime}
-          onChangeMonth={changeMonth}
-        />
-        
- 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.mainTabContainer, { borderColor: colors.border, backgroundColor: colors.background.soft }]}>
+            <TouchableOpacity
+              style={[styles.mainTabBtn, mainTab === "Lịch" && { backgroundColor: colors.primary }]}
+              onPress={() => setMainTab("Lịch")}
+            >
+              <Text style={[styles.mainTabText, { color: mainTab === "Lịch" ? colors.text.textOnDark : colors.primary }]}>
+                {language === 'vi' ? "Lịch" : "Calendar"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.mainTabBtn, mainTab === "Hành trình" && { backgroundColor: colors.primary }]}
+              onPress={() => setMainTab("Hành trình")}
+            >
+              <Text style={[styles.mainTabText, { color: mainTab === "Hành trình" ? colors.text.textOnDark : colors.primary }]}>
+                {t('journeys')}
+              </Text>
+            </TouchableOpacity>
+        </View>
 
-            {/* Weekday Labels */}
-            <View style={styles.weekdayRow}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <Text key={day} style={styles.weekdayText}>{day}</Text>
-              ))}
+        {mainTab === "Lịch" ? (
+          <>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+            <View style={{ zIndex: 5 }}>
+                      <View style={{ marginBottom: SIZES.spacing.s, zIndex: 10, flexDirection: "row", alignItems: "center", gap: 5 }}>
+          <View style={{ flex: 1 }}>
+
+          <MonthSelector
+            currentDate={currentDate}
+            activeTab={activeTab}
+            onChangeMonth={changeMonth}
+            showDay={false}
+            />
             </View>
-
-            {/* Calendar Grid */}
-            <View style={styles.calendarGrid}>
-              {calendarData.map((item) => (
-                <TouchableOpacity 
-                  key={item.day} 
-                  style={styles.dayCell}
-                  onPress={() => {
-                    setSelectedDay(item.day);
-                    setIsDetailVisible(true);
-                  }}
+          <View style={[styles.viewModeContainer, { backgroundColor: colors.background.soft }]}>
+                {
+                  displayMode === "icon" ? <TouchableOpacity
+                  style={[
+                    styles.viewModeBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={() => setDisplayMode("image")}
                 >
-                  <Text style={styles.dayNumber}>{item.day}</Text>
-                  <View style={styles.iconContainer}>
-                    <Image 
-                      source={MOOD_ICONS[item.moodIndex]} 
-                      style={styles.moodIcon}
-                    />
-                  </View>
+                  <Text style={[styles.viewModeText, { color: colors.text.textOnDark }]}>
+                    {language === 'vi' ? "Cảm xúc" : "Mood"}
+                  </Text>
+                </TouchableOpacity>:<TouchableOpacity
+                  style={[
+                    styles.viewModeBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={() => setDisplayMode("icon")}
+                >
+                  <Text style={[styles.viewModeText, { color: colors.text.textOnDark }]}>
+                    {language === 'vi' ? "Hình ảnh" : "Gallery"}
+                  </Text>
                 </TouchableOpacity>
-              ))}
+                }
+              </View>
+        </View>
+              
             </View>
 
-            {/* Monthly Insights */}
-            <View style={styles.insightsSection}>
-              <Text style={styles.sectionTitle}>Monthly Insights</Text>
-              {stats.map((count, index) => (
-                <View key={index} style={styles.insightRow}>
-                  <Text style={styles.insightLabel}>{MOOD_LABELS[index]}</Text>
-                  <View style={styles.progressTrack}>
-                    <View 
-                      style={[
-                        styles.progressBar, 
-                        { 
-                          width: `${(count / calendarData.length) * 100}%`,
-                          backgroundColor: COLORS.moods[index]
-                        }
-                      ]} 
-                    />
-                    <Image source={MOOD_ICONS[index]} style={styles.smallMoodIcon} />
-                  </View>
-                  <Text style={styles.insightCount}>{count} days</Text>
+              <View style={styles.weekdayRow}>
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                  <Text key={day} style={[styles.weekdayText, { color: colors.text.dark }]}>
+                    {day}
+                  </Text>
+                ))}
+              </View>
+
+              <CalendarGrid
+                calendarData={calendarData}
+                displayMode={displayMode}
+                onDayPress={(day) => {
+                  setSelectedDay(day);
+                  setIsDetailVisible(true);
+                }}
+                mockGallery={mockGallery}
+              />
+
+              <MonthlyInsights
+                statsByDay={stats}
+                statsTotal={statsTotal}
+                totalDays={calendarData.length}
+                totalEntries={totalEntries}
+              />
+
+              <View style={styles.gallerySection}>
+                <View style={styles.galleryHeaderRow}>
+                  <Text style={[styles.sectionTitle, { color: colors.text.dark, marginBottom: 0 }]}>{t('images')}</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate("Gallery")}>
+                    <Text style={{ fontFamily: FONTS.bold, color: colors.primary }}>{t('view_all')}</Text>
+                  </TouchableOpacity>
                 </View>
-              ))}
-            </View>
-
-            {/* Photo Gallery */}
-            <View style={styles.gallerySection}>
-              <Text style={styles.sectionTitle}>Photo Gallery</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-                {mockGallery.map((item) => (
-                  <View key={item.id} style={styles.galleryItem}>
-                    <Image source={{ uri: item.image }} style={styles.galleryImage} />
-                    <View style={styles.galleryInfo}>
-                      <Text style={styles.galleryDate}>{item.date}</Text>
-                      <Image source={item.moodIcon} style={styles.galleryIcon} />
+                {mockGallery.length === 0 ? (
+                  <EmptyState 
+                    title={t('no_data')}
+                    description={t('no_image_desc')}
+                    showButton={false}
+                  />
+                ) : (<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
+                  {mockGallery.map((item) => (
+                    <View key={item.id} style={styles.galleryItem}>
+                      <Image source={{ uri: item.image }} style={styles.galleryImage} />
+                      <View style={styles.galleryInfo}>
+                        <Text style={[styles.galleryDate, { color: colors.text.dark }]}>{item.date}</Text>
+                        {item.moodIcon && <Image source={{ uri: item.moodIcon.uri }} style={styles.galleryIcon} />}
+                      </View>
                     </View>
+                  ))}
+                </ScrollView>)}
+              </View>
+              <View style={{ height: 100 }} />
+            </ScrollView>
+          </>
+        ) : (
+          <View style={{ flex: 1 }}>
+            {sortedSections.length === 0 ? (
+              <EmptyState 
+                title={t('no_data')}
+                description={t('empty_desc')}
+                onPress={() => navigation.navigate("Add")}
+                showButton={true}
+              />
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.journalListContent}>
+                <View style={styles.sortContainer}>
+                  <SortSelector value={sortOrder} onValueChange={setSortOrder} />
+                </View>
+                {sortedSections.map((section, index) => (
+                  <View key={index}>
+                    <View style={{ paddingHorizontal: SIZES.spacing.xl, paddingVertical: SIZES.spacing.s, marginTop: SIZES.spacing.s }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: colors.text.dark }}>{section.title}</Text>
+                    </View>
+                    {section.data.map((item) => (
+                      <View key={item.id} style={styles.journalItemContainer}>
+                        <PostCard item={item} />
+                      </View>
+                    ))}
                   </View>
                 ))}
               </ScrollView>
-            </View>
+            )}
+          </View>
+        )}
 
-            <View style={{ height: 100 }} />
-          </ScrollView>
-
-
-
-        <Modal
-          visible={isDetailVisible}
-          animationType="slide"
-          onRequestClose={() => setIsDetailVisible(false)}
-        >
-          <DayDetailScreen 
-            navigation={{ goBack: () => setIsDetailVisible(false) }} 
-            route={{ params: { day: selectedDay, month: currentDate.getMonth(), year: currentDate.getFullYear() } }} 
+        <Modal visible={isDetailVisible} animationType="slide" onRequestClose={() => setIsDetailVisible(false)}>
+          <DayDetailScreen
+            navigation={{ goBack: () => setIsDetailVisible(false) }}
+            route={{
+              params: {
+                day: selectedDay,
+                month: currentDate.getMonth(),
+                year: currentDate.getFullYear(),
+              },
+            }}
           />
         </Modal>
       </SafeAreaView>
@@ -182,162 +318,50 @@ const [activeTab, setActiveTab] = useState<'Mine' | 'Friends'>('Mine');
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  safeArea: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: SIZES.spacing.xl,
     paddingVertical: SIZES.spacing.s,
-  },tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    backgroundColor: COLORS.background.overlay,
-    borderRadius: SIZES.radius.xxl,
-    padding: 4,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: SIZES.radius.xl,
-  },
-  activeTab: {
-    backgroundColor: COLORS.primary,
-  },
-  tabText: {
-    fontFamily: FONTS.regular,
-    fontSize: 16,
-    color: COLORS.primary,
-  },
-  activeTabText: {
-    color: COLORS.text.white,
-  },
-  headerTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: 22,
-    color: COLORS.text.dark,
-  },
-  scrollContent: {
-    paddingHorizontal: SIZES.spacing.xl,
-    paddingTop: SIZES.spacing.s,
-  },
+  screenTitle: { fontFamily: FONTS.bold, fontSize: 22 },
+  scrollContent: { paddingHorizontal: SIZES.spacing.xl, paddingTop: SIZES.spacing.s },
   weekdayRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: SIZES.spacing.s,
-    gap: SIZES.spacing.s,
   },
   weekdayText: {
-    width: (width - 40 - 48) / 7 - 0.2,
-    textAlign: 'center',
+    width: (width - 40 - 48) / 7,
+    textAlign: "center",
     fontFamily: FONTS.bold,
     fontSize: 12,
-    color: COLORS.primary,
-    textTransform: 'uppercase',
-  },
-  dateInfo: {
-    flex: 1,
-  },
-  selectorActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SIZES.spacing.m,
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SIZES.spacing.s,
-    justifyContent: 'flex-start',
-    marginBottom: SIZES.spacing.xxl,
-  },
-  dayCell: {
-    width: (width - 40 - 48) / 7 - 0.2,
-    aspectRatio: 1,
-    borderRadius: SIZES.radius.medium,
-    backgroundColor: COLORS.background.soft,
-    padding: 2,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayNumber: {
-    position: 'absolute',
-    top: SIZES.spacing.xs,
-    left: SIZES.spacing.xs,
-    fontSize: 10,
-    fontFamily: FONTS.bold,
-    color: COLORS.text.dark,
-    zIndex: 1,
+    textTransform: "uppercase",
   },
   iconContainer: {
-    width: '100%',
-    height: '100%',
-    padding: SIZES.spacing.xs,
+    width: "100%",
+    height: "100%",
+    padding: 4,
   },
   moodIcon: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-  insightsSection: {
-    marginBottom: SIZES.spacing.xxl,
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+    borderRadius: 8,
   },
   sectionTitle: {
     fontFamily: FONTS.bold,
     fontSize: 24,
-    color: COLORS.secondary,
     marginBottom: SIZES.spacing.l,
   },
-  insightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SIZES.spacing.l,
-    gap: SIZES.spacing.m,
-  },
-  insightLabel: {
-    width: 80,
-    fontFamily: FONTS.regular,
-    fontSize: 14,
-    color: COLORS.text.dark,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 14,
-    backgroundColor: COLORS.background.overlay,
-    borderRadius: 7,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 7,
-  },
-  smallMoodIcon: {
-    position: 'absolute',
-    right: -4,
-    width: 24,
-    height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: COLORS.divider,
-  },
-  insightCount: {
-    width: 60,
-    fontFamily: FONTS.regular,
-    fontSize: 14,
-    color: COLORS.text.dark,
-    textAlign: 'right',
+  galleryHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SIZES.spacing.s,
   },
   gallerySection: {
     marginBottom: SIZES.spacing.xl,
@@ -356,41 +380,62 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.spacing.s,
   },
   galleryInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SIZES.spacing.xs,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 4,
   },
   galleryDate: {
     fontFamily: FONTS.bold,
     fontSize: 14,
-    color: COLORS.text.dark,
   },
   galleryIcon: {
-    width: 24,
-    height: 24,
+    width: 34,
+    height: 34,
   },
-
-  stickyHeader: {
-    backgroundColor: COLORS.background.white,
-    paddingVertical: SIZES.spacing.s,
-    paddingHorizontal: SIZES.spacing.m,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.spacing.s,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SIZES.spacing.m,
+  viewModeContainer: {
+    flexDirection: "row",
+    borderRadius: 20,
+    padding: 4,
+    alignSelf: "center",
   },
-  stickyHeaderText: {
+  viewModeBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  viewModeText: {
     fontFamily: FONTS.bold,
-    fontSize: 16,
-    color: COLORS.primary,
+    fontSize: 14,
   },
-  stickyHeaderDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.primary,
+  mainTabContainer: {
+    flexDirection: "row",
+    marginHorizontal: SIZES.spacing.xl,
+    borderRadius: SIZES.radius.xl,
+    padding: 4,
+    marginBottom: SIZES.spacing.l,
+    borderWidth: 1,
+  },
+  mainTabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: SIZES.radius.medium,
+  },
+  mainTabText: {
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+  },
+  journalListContent: {
+    paddingBottom: 100,
+  },
+  journalItemContainer: {
+    paddingHorizontal: SIZES.spacing.xl,
+  },
+  sortContainer: {
+    paddingHorizontal: SIZES.spacing.xl,
+    marginTop: SIZES.spacing.s,
+    marginBottom: SIZES.spacing.s,
+    zIndex: 20,
   },
 });

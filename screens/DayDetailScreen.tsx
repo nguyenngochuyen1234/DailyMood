@@ -8,85 +8,77 @@ import {
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, G } from 'react-native-svg';
-import { COLORS } from '../constants/colors';
 import { FONTS, SIZES } from '../constants/theme';
-import { BACKGROUNDS } from '../constants/images';
+import { useTheme } from '../context/ThemeContext';
+import { useMood } from '../context/MoodContext';
+import MoodIcon from '../components/MoodIcon';
+import EmptyState from '../components/EmptyState';
+import { getJournals } from '../lib/storage';
+import { JournalEntry } from '../types/models';
+import MonthSelector from '../components/MonthSelector';
 
 const { width } = Dimensions.get('window');
 
-const MOOD_ICONS = [
-  require('../assets/icon/icon1.png'),
-  require('../assets/icon/icon2.png'),
-  require('../assets/icon/icon3.png'),
-  require('../assets/icon/icon4.png'),
-  require('../assets/icon/icon5.png'),
-];
-
 const MOOD_LABELS = ['Rất vui', 'Hạnh phúc', 'Bình thường', 'Buồn', 'Tức giận'];
 
-// Mock Timeline Data
-const MOCK_TIMELINE = [
-  {
-    id: '1',
-    time: '9:00 AM',
-    moodIndex: 0,
-    label: 'Happy - Morning jog & coffee',
-    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=60',
-  },
-  {
-    id: '2',
-    time: '2:00 PM',
-    moodIndex: 4,
-    label: 'Stressed - Work deadlines',
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=500&auto=format&fit=crop&q=60',
-  },
-  {
-    id: '3',
-    time: '4:30 PM',
-    moodIndex: 2,
-    label: 'Neutral - Afternoon meeting',
-    image: null,
-  },
-  {
-    id: '4',
-    time: '6:30 PM',
-    moodIndex: 1,
-    label: 'Calm - Evening walk',
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&auto=format&fit=crop&q=60',
-  },
-  {
-    id: '5',
-    time: '10:00 PM',
-    moodIndex: 0,
-    label: 'Relaxed - Reading book',
-    image: null,
-  },
-];
-
-// Mock Pie Chart Data
-const PIE_DATA = [
-  { percentage: 40, color: COLORS.moods[0], label: 'Rất vui' },
-  { percentage: 20, color: COLORS.moods[1], label: 'Hạnh phúc' },
-  { percentage: 15, color: COLORS.moods[2], label: 'Bình thường' },
-  { percentage: 15, color: COLORS.moods[3], label: 'Buồn' },
-  { percentage: 10, color: COLORS.moods[4], label: 'Tức giận' },
-];
-
 export default function DayDetailScreen({ navigation, route }: { navigation: any, route: any }) {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { colors, backgrounds } = useTheme();
+  const { emojis, t } = useMood();
+  const [selectedDate, setSelectedDate] = React.useState(
+    route.params?.day && route.params?.month !== undefined && route.params?.year 
+      ? new Date(route.params.year, route.params.month, route.params.day)
+      : new Date()
+  );
+  const [journals, setJournals] = React.useState<JournalEntry[]>([]);
 
-  const formatDate = (date: Date) => {
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-  };
+  React.useEffect(() => {
+    const fetchDayJournals = async () => {
+      const all = await getJournals();
+      const filtered = all.filter(j => {
+        const d = new Date(j.time);
+        return d.getDate() === selectedDate.getDate() &&
+               d.getMonth() === selectedDate.getMonth() &&
+               d.getFullYear() === selectedDate.getFullYear();
+      });
+      setJournals(filtered.sort((a,b) => new Date(a.time).getTime() - new Date(b.time).getTime()));
+    };
+    fetchDayJournals();
+  }, [selectedDate]);
 
+  // Use dynamic colors for PIE_DATA
+  // Calculate pieData based on real logs
+  const pieData = React.useMemo(() => {
+    if (emojis.length === 0 || journals.length === 0) return [];
+    
+    const counts = new Array(emojis.length).fill(0);
+    journals.forEach(j => {
+      const idx = emojis.findIndex(e => e.id === j.typeEmoji);
+      if (idx >= 0) counts[idx]++;
+    });
+
+    return emojis.map((e, index) => ({
+      percentage: Math.round((counts[index] / journals.length) * 100),
+      color: colors.moods[index] || colors.primary,
+      label: e.emotion_name,
+      count: counts[index]
+    })).filter(item => item.count > 0);
+  }, [journals, emojis, colors]);
   const changeDay = (offset: number) => {
     const newDate = new Date(selectedDate);
     newDate.setDate(selectedDate.getDate() + offset);
     setSelectedDate(newDate);
   };
 
+
+
   const renderPieChart = () => {
+    if (pieData.length === 0) {
+      return (
+        <View style={[styles.pieContainer, { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.background.soft, justifyContent: 'center', alignItems: 'center' }]}>
+           <Text style={{ fontSize: 10, color: colors.text.muted }}>No data</Text>
+        </View>
+      );
+    }
     const size = 120;
     const center = size / 2;
     const radius = 30;
@@ -98,7 +90,7 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
       <View style={styles.pieContainer}>
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <G rotation="-90" origin={`${center}, ${center}`}>
-            {PIE_DATA.map((item, index) => {
+            {pieData.map((item: any, index: number) => {
               const dasharray = (item.percentage / 100) * circumference;
               const dashoffset = circumference - dasharray;
               const rotation = (startAngle / 100) * 360;
@@ -119,9 +111,8 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
               );
             })}
           </G>
-          {/* Legend percents labels directly on pie slices approximated by text */}
           <View style={styles.chartOverlay}>
-             <Text style={styles.totalLabel}>Daily Mix</Text>
+             <Text style={[styles.totalLabel, { color: colors.text.dark }]}>Daily Mix</Text>
           </View>
         </Svg>
       </View>
@@ -130,70 +121,78 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
 
   return (
     <ImageBackground 
-      source={BACKGROUNDS.detail} 
+      source={backgrounds.detail} 
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            {React.createElement(ArrowLeft as any, { size: 28, color: COLORS.text.dark })}
+            {React.createElement(ArrowLeft as any, { size: 28, color: colors.text.dark })}
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Daily Mood Statistics</Text>
+          <Text style={[styles.headerTitle, { color: colors.text.dark }]}>{t('daily_stats')}</Text>
           <View style={{ width: 28 }} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Date Navigation */}
-          <View style={styles.datePicker}>
-            <TouchableOpacity onPress={() => changeDay(-1)}>
-             {React.createElement(ChevronLeft as any, { size: 24, color: COLORS.text.dark })}
-          </TouchableOpacity>
-            <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
-            <TouchableOpacity onPress={() => changeDay(1)}>
-             {React.createElement(ChevronRight as any, { size: 24, color: COLORS.text.dark })}
-          </TouchableOpacity>
+          <View style={{ gap: 10, marginBottom: 20 }}>
+            {/* Selector cho Ngày */}
+            <MonthSelector
+              currentDate={selectedDate}
+              showDay={true}
+              onChangeMonth={changeDay}
+              onCalendarPress={() => {}} // Could open a full calendar modal
+            />
           </View>
-
-          {/* Timeline Section */}
           <View style={styles.timelineSection}>
-            <View style={styles.timelineLine} />
-            {MOCK_TIMELINE.map((item, index) => (
-              <View key={item.id} style={styles.timelineItem}>
-                {/* Time Display */}
-                <View style={styles.timeContainer}>
-                    <Text style={styles.timeText}>{item.time}</Text>
-                </View>
+            {journals.length === 0 ? (
+              <EmptyState 
+                onPress={() => navigation.navigate("AddJournal")} 
+              />
+            ) : (
+              journals.map((item, index) => {
+                const d = new Date(item.time);
+                const tStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                const moodIdx = emojis.findIndex(e => e.id === item.typeEmoji);
+                
+                return (
+                  <View key={item.id} style={styles.timelineItem}>
+                    {/* Time Display */}
+                    <View style={styles.timeContainer}>
+                        <Text style={[styles.timeText, { color: colors.text.dark }]}>{tStr}</Text>
+                    </View>
 
-                {/* Vertical Connector and Icon (Left Side) */}
-                <View style={styles.connectorContainer}>
-                   <Image source={MOOD_ICONS[item.moodIndex]} style={styles.timelineImage} />
-                </View>
+                    {/* Vertical Connector and Icon (Left Side) */}
+                    <View style={styles.connectorContainer}>
+                      <MoodIcon index={moodIdx} size={60} style={styles.timelineImage} />
+                    </View>
 
-                {/* Label (Right Side) */}
-                <View style={styles.labelContainer}>
-                    <Text style={styles.moodLabel}>{item.label}</Text>
-                </View>
-              </View>
-            ))}
+                    {/* Label (Right Side) */}
+                    <View style={styles.labelContainer}>
+                        <Text style={[styles.moodLabel, { color: colors.text.dark }]}>{item.description || item.title || "No description"}</Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
 
           {/* Mood Mix Section */}
-          <View style={styles.moodMixSection}>
-             <Text style={styles.sectionTitle}>Mood Mix</Text>
-             <View style={styles.chartWrapper}>
+{journals.length > 0 &&          <View style={styles.moodMixSection}>
+             <Text style={[styles.sectionTitle, { color: colors.secondary }]}>{t('daily_stats')}</Text>
+             <View style={[styles.chartWrapper, { backgroundColor: colors.backgroundCard }]}>
                 {renderPieChart()}
                 <View style={styles.legendContainer}>
-                    {PIE_DATA.map((item, index) => (
+                    {pieData.map((item, index) => (
                         <View key={index} style={styles.legendRow}>
                             <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                            <Text style={styles.legendText}>{item.label}</Text>
-                            <Text style={styles.legendPercent}>{item.percentage}%</Text>
+                            <Text style={[styles.legendText, { color: colors.text.dark }]}>{item.label}</Text>
+                            <Text style={[styles.legendPercent, { color: colors.text.dark }]}>{item.percentage}%</Text>
                         </View>
                     ))}
                 </View>
              </View>
-          </View>
+          </View>}
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -219,7 +218,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FONTS.bold,
     fontSize: 22,
-    color: COLORS.text.dark,
   },
   scrollContent: {
     paddingHorizontal: SIZES.spacing.xl,
@@ -229,17 +227,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.background.overlay,
     borderRadius: SIZES.radius.large,
     padding: SIZES.spacing.m,
     marginBottom: 30,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   dateText: {
     fontFamily: FONTS.bold,
     fontSize: 18,
-    color: COLORS.text.dark,
   },
   timelineSection: {
     marginBottom: 40,
@@ -252,7 +247,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: COLORS.secondary,
     borderRadius: 2,
     opacity: 0.6,
   },
@@ -269,7 +263,6 @@ const styles = StyleSheet.create({
   timeText: {
     fontFamily: FONTS.bold,
     fontSize: 14,
-    color: COLORS.text.dark,
   },
   connectorContainer: {
     width: 80,
@@ -287,7 +280,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.background.soft,
     zIndex: 1,
   },
   moodIconOnLine: {
@@ -298,12 +290,10 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: COLORS.background.white,
     zIndex: 2,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.divider,
   },
   timelineMoodIcon: {
     width: 24,
@@ -317,7 +307,6 @@ const styles = StyleSheet.create({
   moodLabel: {
     fontFamily: FONTS.bold,
     fontSize: 16,
-    color: COLORS.text.dark,
     lineHeight: 22,
   },
   moodMixSection: {
@@ -326,7 +315,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.bold,
     fontSize: 24,
-    color: COLORS.secondary,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -334,7 +322,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.overlay,
     borderRadius: SIZES.radius.xxl,
     padding: 20,
   },
@@ -353,7 +340,6 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontFamily: FONTS.bold,
     fontSize: 12,
-    color: COLORS.text.dark,
   },
   legendContainer: {
     flex: 1,
@@ -374,12 +360,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONTS.bold,
     fontSize: 14,
-    color: COLORS.text.dark,
   },
   legendPercent: {
     fontFamily: FONTS.bold,
     fontSize: 14,
-    color: COLORS.text.dark,
     marginLeft: 8,
   },
 });

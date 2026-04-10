@@ -1,41 +1,46 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
-import { COLORS } from '../constants/colors';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 import { FONTS, SIZES } from '../constants/theme';
 
-const PostCard = ({ item }: { item: any }) => (
-  <View style={styles.postCard}>
-    <View style={styles.postHeader}>
+const PostCard = ({ item }: { item: any }) => {
+  const { colors } = useTheme();
+  const navigation = useNavigation<any>();
 
-      <View style={styles.moodBadge}>
-        <Text style={styles.userName}>{item.time}</Text>
-        <Image
-          source={require('../assets/icon/icon4.png')}
-          style={{ width: 40, height: 40 }}
-        />
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      style={[styles.postCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}
+      onPress={() => navigation.navigate("EditEntry", { journalId: item.id })}
+    >
+      <View style={styles.postHeader}>
+        <View style={styles.moodBadge}>
+          <Text style={[styles.userName, { color: colors.text.dark }]}>{item.time || item.date}</Text>
+          <Image
+            source={item.moodIcon || require('../assets/icon/icon4.png')}
+            style={{ width: 40, height: 40 }}
+          />
+        </View>
       </View>
-    </View>
 
-    {item.image && (
-      <Image source={{ uri: item.image }} style={styles.postImage} />
-    )}
+      {item.image && (
+        <Image source={{ uri: item.image }} style={styles.postImage} />
+      )}
 
-    {item.text && (
-      <Text style={styles.postText}>{item.text}</Text>
-    )}
-  </View>
-);
+      {item.text && (
+        <Text style={[styles.postText, { color: colors.text.dark }]}>{item.text}</Text>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   postCard: {
-    backgroundColor: COLORS.background.overlay,
     borderRadius: SIZES.radius.xxl,
     padding: SIZES.spacing.xl,
     marginBottom: SIZES.spacing.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    // elevation: 2,
   },
   postHeader: {
     flexDirection: 'row',
@@ -43,20 +48,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SIZES.spacing.m,
   },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
   userName: {
     fontFamily: FONTS.bold,
     fontSize: 16,
-    color: COLORS.text.dark,
   },
   moodBadge: {
     flexDirection: 'row',
@@ -74,30 +68,8 @@ const styles = StyleSheet.create({
   postText: {
     fontFamily: FONTS.regular,
     fontSize: 16,
-    color: COLORS.text.dark,
     lineHeight: 24,
     marginBottom: SIZES.spacing.m,
-  },
-  postFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: SIZES.spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.divider,
-    paddingTop: SIZES.spacing.m,
-  },
-  postTime: {
-    fontFamily: FONTS.regular,
-    fontSize: 14,
-    color: COLORS.text.muted,
-  },
-  postActions: {
-    flexDirection: 'row',
-    gap: SIZES.spacing.l,
-  },
-  actionButton: {
-    padding: SIZES.spacing.xs,
   },
 });
 
