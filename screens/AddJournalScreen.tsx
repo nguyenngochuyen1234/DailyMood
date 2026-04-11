@@ -12,18 +12,38 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { ArrowLeft, Check, Camera, X, ChevronDown, Trash2 } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Check,
+  Camera,
+  X,
+  ChevronDown,
+  Trash2,
+} from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { useMood } from "../context/MoodContext";
 import { FONTS, SIZES } from "../constants/theme";
 import JourneyPicker from "../components/JourneyPicker";
-import { saveJournal, getJourneys, getJournals, updateJournal, deleteJournal } from '../lib/storage';
-import { Journey } from '../types/models';
+import MoodSelector from "../components/MoodSelector";
+import {
+  saveJournal,
+  getJourneys,
+  getJournals,
+  updateJournal,
+  deleteJournal,
+} from "../lib/storage";
+import { Journey } from "../types/models";
 
 const { width } = Dimensions.get("window");
 
-export default function AddJournalScreen({ navigation, route }: { navigation: any, route?: any }) {
+export default function AddJournalScreen({
+  navigation,
+  route,
+}: {
+  navigation: any;
+  route?: any;
+}) {
   const { journalId } = route?.params || {};
   const isEditing = !!journalId;
 
@@ -41,7 +61,7 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [originalTime, setOriginalTime] = useState<string | null>(null);
-  
+
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
   const [showJourneyPicker, setShowJourneyPicker] = useState(false);
@@ -51,17 +71,19 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
       const data = await getJourneys();
       setJourneys(data);
       if (journalId) {
-         const dbJournals = await getJournals();
-         const journalToEdit = dbJournals.find(j => j.id === journalId);
-         if(journalToEdit) {
-            setTitle(journalToEdit.title || "");
-            setDescription(journalToEdit.description || "");
-            setImages(journalToEdit.images || []);
-            setSelectedMoodId(Number(journalToEdit.typeEmoji));
-            const foundJourney = data.find(j => j.id === journalToEdit.journeyId);
-            setSelectedJourney(foundJourney || null);
-            setOriginalTime(journalToEdit.time);
-         }
+        const dbJournals = await getJournals();
+        const journalToEdit = dbJournals.find((j) => j.id === journalId);
+        if (journalToEdit) {
+          setTitle(journalToEdit.title || "");
+          setDescription(journalToEdit.description || "");
+          setImages(journalToEdit.images || []);
+          setSelectedMoodId(Number(journalToEdit.typeEmoji));
+          const foundJourney = data.find(
+            (j) => j.id === journalToEdit.journeyId,
+          );
+          setSelectedJourney(foundJourney || null);
+          setOriginalTime(journalToEdit.time);
+        }
       }
     };
     initData();
@@ -78,7 +100,7 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
 
   const handleSave = async () => {
     if (selectedMoodId === null) {
-      Alert.alert('Lỗi', 'Vui lòng chọn cảm xúc!');
+      Alert.alert("Lỗi", "Vui lòng chọn cảm xúc!");
       return;
     }
     try {
@@ -93,33 +115,39 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
       };
 
       if (isEditing) {
-         await updateJournal(journalData);
-         navigation.goBack();
+        await updateJournal(journalData);
+        navigation.goBack();
       } else {
-         await saveJournal(journalData);
-         navigation.goBack();
+        await saveJournal(journalData);
+        navigation.goBack();
       }
     } catch (e) {
-      Alert.alert('Lỗi', 'Lưu thất bại!');
+      Alert.alert("Lỗi", "Lưu thất bại!");
     }
   };
 
   const handleDelete = () => {
-    Alert.alert('Xoá Nhật Ký', 'Bạn có chắc muốn xoá nhật ký này vĩnh viễn?', [
-      { text: 'Huỷ', style: 'cancel' },
-      { text: 'Xoá', style: 'destructive', onPress: () => {
-         deleteJournal(journalId).then(() => {
-           navigation.goBack();
-         }).catch((e) => {
-           Alert.alert('Lỗi', 'Xóa thất bại!');
-         });
-      }}
-    ])
+    Alert.alert("Xoá Nhật Ký", "Bạn có chắc muốn xoá nhật ký này vĩnh viễn?", [
+      { text: "Huỷ", style: "cancel" },
+      {
+        text: "Xoá",
+        style: "destructive",
+        onPress: () => {
+          deleteJournal(journalId)
+            .then(() => {
+              navigation.goBack();
+            })
+            .catch((e) => {
+              Alert.alert("Lỗi", "Xóa thất bại!");
+            });
+        },
+      },
+    ]);
   };
 
   const handleAddPhoto = () => {
     if (images.length >= 3) {
-      Alert.alert('Thông báo', 'Bạn chỉ được tải lên tối đa 3 ảnh.');
+      Alert.alert("Thông báo", "Bạn chỉ được tải lên tối đa 3 ảnh.");
       return;
     }
     const mockImages = [
@@ -138,70 +166,110 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
   };
 
   return (
-    <ImageBackground source={backgrounds.add} style={[styles.container, { backgroundColor: colors.background.main }]}>
+    <ImageBackground
+      source={backgrounds.add}
+      style={[styles.container, { backgroundColor: colors.background.main }]}
+    >
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            {React.createElement(ArrowLeft as any, { size: 28, color: colors.text.dark })}
+            {React.createElement(ArrowLeft as any, {
+              size: 28,
+              color: colors.text.dark,
+            })}
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text.dark }]}>
             {isEditing ? "Edit Journal" : "New Journal Entry"}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             {isEditing && (
               <TouchableOpacity onPress={handleDelete} style={{ padding: 6 }}>
-                {React.createElement(Trash2 as any, { size: 24, color: colors.error })}
+                {React.createElement(Trash2 as any, {
+                  size: 24,
+                  color: colors.error,
+                })}
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={handleSave} style={[styles.saveButton, { backgroundColor: colors.primary }]}>
-              {React.createElement(Check as any, { size: 20, color: colors.text.textOnDark })}
-              <Text style={[styles.saveText, { color: colors.text.textOnDark }]}>{isEditing ? "Update" : "Save"}</Text>
+            <TouchableOpacity
+              onPress={handleSave}
+              style={[styles.saveButton, { backgroundColor: colors.primary }]}
+            >
+              {React.createElement(Check as any, {
+                size: 20,
+                color: colors.text.textOnDark,
+              })}
+              <Text
+                style={[styles.saveText, { color: colors.text.textOnDark }]}
+              >
+                {isEditing ? "Update" : "Save"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* Mood Selector */}
           <View style={styles.section}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moodContainer}>
-              {loading ? (
-                <ActivityIndicator color={colors.primary} style={{ padding: 20 }} />
-              ) : (
-                emojis.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji.id}
-                    onPress={() => setSelectedMoodId(emoji.id)}
-                    style={[
-                      styles.moodItem,
-                      { backgroundColor: colors.background.soft },
-                      selectedMoodId === emoji.id && { borderColor: colors.primary, backgroundColor: colors.background.white },
-                    ]}
-                  >
-                    <Image source={{ uri: emoji.image }} style={styles.moodIcon} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SIZES.spacing.s }}>
-              <Text style={[styles.sectionLabel, { color: colors.text.dark, marginBottom: 0 }]}>
-                {emojis.find((item) => item.id === selectedMoodId)?.emotion_name || "Đang tải..."}
-              </Text>
+            <MoodSelector
+              emojis={emojis}
+              loading={loading}
+              selectedMoodId={selectedMoodId}
+              onMoodChange={setSelectedMoodId}
+            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: SIZES.spacing.s,
+              }}
+            >
               <TouchableOpacity onPress={() => navigation.navigate("AllMoods")}>
-                <Text style={{ fontFamily: FONTS.bold, color: colors.primary, fontSize: 16 }}>Thêm</Text>
+                <Text
+                  style={{
+                    fontFamily: FONTS.bold,
+                    color: colors.text.dark,
+                    fontSize: 16,
+                  }}
+                >
+                  Thêm
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Date & Time */}
-          <View style={[styles.dateTimeContainer, { borderBottomColor: colors.border }]}>
-            <View style={[styles.dateDisplay, { borderRightColor: colors.border }]}>
-              <Text style={[styles.dateTimeText, { color: colors.text.dark }]}>{dateString}</Text>
+          <View
+            style={[
+              styles.dateTimeContainer,
+              { borderBottomColor: colors.border },
+            ]}
+          >
+            <View
+              style={[styles.dateDisplay, { borderRightColor: colors.border }]}
+            >
+              <Text style={[styles.dateTimeText, { color: colors.text.dark }]}>
+                {dateString}
+              </Text>
             </View>
-            <TouchableOpacity style={[styles.timePicker, { backgroundColor: colors.background.cream }]}>
-              <Text style={[styles.dateTimeText, { color: colors.text.dark }]}>{timeString}</Text>
-              {React.createElement(ChevronDown as any, { size: 16, color: colors.text.dark })}
+            <TouchableOpacity
+              style={[
+                styles.timePicker,
+                { backgroundColor: colors.background.cream },
+              ]}
+            >
+              <Text style={[styles.dateTimeText, { color: colors.primary }]}>
+                {timeString}
+              </Text>
+              {React.createElement(ChevronDown as any, {
+                size: 16,
+                color: colors.primary,
+              })}
             </TouchableOpacity>
           </View>
 
@@ -219,13 +287,29 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
           {/* Input Fields */}
           <View style={styles.inputSection}>
             <TextInput
-              style={[styles.titleInput, { color: colors.text.dark, borderBottomColor: colors.border }]}
+              style={[
+                styles.titleInput,
+
+                {
+                  color: colors.text.dark,
+                  borderBottomColor: colors.border,
+                  flex: 1,
+                },
+              ]}
               placeholder="Title (Optional)"
               placeholderTextColor={colors.text.muted}
               value={title}
               onChangeText={setTitle}
             />
-            <View style={[styles.descriptionContainer, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.descriptionContainer,
+                {
+                  backgroundColor: colors.backgroundCard,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
               <TextInput
                 style={[styles.descriptionInput, { color: colors.text.dark }]}
                 placeholder="Write about your day..."
@@ -239,22 +323,46 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
           </View>
 
           {/* Add Photo Button */}
-          <TouchableOpacity style={[styles.addPhotoButton, { backgroundColor: colors.primary }]} onPress={handleAddPhoto}>
-            {React.createElement(Camera as any, { size: 24, color: colors.text.textOnDark, style: { marginRight: 8 } })}
-            <Text style={[styles.buttonText, { color: colors.text.textOnDark }]}>Add Photo</Text>
+          <TouchableOpacity
+            style={[styles.addPhotoButton, { backgroundColor: colors.primary }]}
+            onPress={handleAddPhoto}
+          >
+            {React.createElement(Camera as any, {
+              size: 24,
+              color: colors.text.textOnDark,
+              style: { marginRight: 8 },
+            })}
+            <Text
+              style={[styles.buttonText, { color: colors.text.textOnDark }]}
+            >
+              Add Photo
+            </Text>
           </TouchableOpacity>
 
           {/* Photo Gallery Preview */}
           {images.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.galleryContainer}
+            >
               {images.map((img, index) => (
                 <View key={index} style={styles.imagePreviewContainer}>
                   <Image source={{ uri: img }} style={styles.imagePreview} />
                   <TouchableOpacity
-                    style={[styles.removeImageButton, { backgroundColor: colors.error, borderColor: colors.background.white }]}
+                    style={[
+                      styles.removeImageButton,
+                      {
+                        backgroundColor: colors.error,
+                        borderColor: colors.background.white,
+                      },
+                    ]}
                     onPress={() => removeImage(index)}
                   >
-                    {React.createElement(X as any, { size: 12, color: colors.text.white })}
+                    {React.createElement(X as any, {
+                      size: 12,
+                      color: colors.text.white,
+                    })}
                   </TouchableOpacity>
                 </View>
               ))}
@@ -270,7 +378,11 @@ export default function AddJournalScreen({ navigation, route }: { navigation: an
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  sectionLabel: { fontFamily: FONTS.bold, fontSize: 16, marginBottom: SIZES.spacing.s },
+  sectionLabel: {
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+    marginBottom: SIZES.spacing.s,
+  },
   safeArea: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -289,12 +401,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   saveText: { fontFamily: FONTS.bold, fontSize: 16 },
-  scrollContent: { paddingHorizontal: SIZES.spacing.xl, paddingTop: SIZES.spacing.s },
+  scrollContent: {
+    paddingHorizontal: SIZES.spacing.xl,
+    paddingTop: SIZES.spacing.s,
+  },
   section: { marginBottom: SIZES.spacing.xxl },
   moodContainer: { paddingVertical: SIZES.spacing.s, gap: SIZES.spacing.m },
   moodItem: {
-    width: 60,
-    height: 60,
+    paddingHorizontal: SIZES.spacing.m,
     borderRadius: SIZES.radius.large,
     justifyContent: "center",
     alignItems: "center",
@@ -310,7 +424,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: SIZES.spacing.m,
   },
-  dateDisplay: { flex: 1, paddingVertical: SIZES.spacing.s, borderRightWidth: 1 },
+  dateDisplay: {
+    flex: 1,
+    paddingVertical: SIZES.spacing.s,
+    borderRightWidth: 1,
+  },
   timePicker: {
     flexDirection: "row",
     alignItems: "center",
@@ -334,7 +452,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minHeight: 200,
   },
-  descriptionInput: { fontFamily: FONTS.regular, fontSize: 18, lineHeight: 24 },
+  descriptionInput: {
+    fontFamily: FONTS.regular,
+    fontSize: 18,
+    lineHeight: 24,
+    flex: 1,
+  },
   addPhotoButton: {
     flexDirection: "row",
     alignItems: "center",

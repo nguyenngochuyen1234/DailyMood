@@ -1,65 +1,49 @@
-import React, { useMemo, useRef, useState } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Dimensions,
-  ImageBackground,
-  ActivityIndicator,
-  FlatList,
-  SectionList,
-  Image,
-  ScrollView,
-} from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  useFonts,
   Baloo2_400Regular,
   Baloo2_700Bold,
+  useFonts,
 } from "@expo-google-fonts/baloo-2";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { NavigationContainer } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
+import { BarChart2, Home, Plus, Puzzle, Settings } from "lucide-react-native";
+import React, { useState } from "react";
 import {
-  Heart,
-  Smile,
-  Frown,
-  Sun,
-  Home,
-  BarChart2,
-  Plus,
-  Puzzle,
-  Settings,
-} from "lucide-react-native";
+  ActivityIndicator,
+  Dimensions,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import PostCard from "./components/PostCard";
-import EmptyState from "./components/EmptyState";
-import AddJournalScreen from "./screens/AddJournalScreen";
-import StatsScreen from "./screens/StatsScreen";
-import FolderScreen from "./screens/FolderScreen";
-import SettingScreen from "./screens/SettingScreen";
-import MonthSelector from "./components/MonthSelector";
-import { ThemeProvider, useTheme } from "./context/ThemeContext";
-import { FONTS, SIZES } from "./constants/theme";
-import MoodIcon from "./components/MoodIcon";
-import CreateJourneyScreen from "./screens/CreateJourneyScreen";
-import { getJournals } from "./lib/storage";
-import { useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import JourneyDetailScreen from "./screens/JourneyDetailScreen";
-import SortSelector, { SortOrder } from "./components/SortSelector";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MoodDetailScreen from "./screens/MoodDetailScreen";
-import GalleryScreen from "./screens/GalleryScreen";
-import ThemeListScreen from "./screens/ThemeListScreen";
-import AllMoodsScreen from "./screens/AllMoodsScreen";
+import EmptyState from "./components/EmptyState";
+import MoodIcon from "./components/MoodIcon";
+import MoodSelector from "./components/MoodSelector";
+import PostCard from "./components/PostCard";
+import { FONTS, SIZES } from "./constants/theme";
 import { MoodProvider, useMood } from "./context/MoodContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { getJournals } from "./lib/storage";
+import AddJournalScreen from "./screens/AddJournalScreen";
+import AllMoodsScreen from "./screens/AllMoodsScreen";
+import CreateJourneyScreen from "./screens/CreateJourneyScreen";
+import FolderScreen from "./screens/FolderScreen";
+import GalleryScreen from "./screens/GalleryScreen";
+import JourneyDetailScreen from "./screens/JourneyDetailScreen";
+import MoodDetailScreen from "./screens/MoodDetailScreen";
+import SettingScreen from "./screens/SettingScreen";
+import StatsScreen from "./screens/StatsScreen";
+import ThemeListScreen from "./screens/ThemeListScreen";
 
 const { width } = Dimensions.get("window");
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-
 
 // --- Screens ---
 // --- Screens ---
@@ -72,75 +56,100 @@ function FeedScreen({ navigation }: any) {
     const fetchJournals = async () => {
       const dbJournals = await getJournals();
       const grouped: { [key: string]: any[] } = {};
-      
-      dbJournals.forEach(j => {
+
+      dbJournals.forEach((j) => {
         const d = new Date(j.time);
-        const dateStr = `${d.getDate()} ${d.toLocaleString('default', { month: 'long' })} ${d.getFullYear()}`;
-        
+        const dateStr = `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
+
         if (!grouped[dateStr]) grouped[dateStr] = [];
-        const emojiObj = emojis.find(e => e.id === j.typeEmoji);
-        
+        const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
+
         grouped[dateStr].push({
           id: j.id,
-          time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+          time: d.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
           moodIcon: emojiObj ? { uri: emojiObj.image } : null,
           text: j.description || j.title,
           image: j.images?.length ? j.images[0] : null,
         });
       });
-      
-      const sections = Object.keys(grouped).map(k => ({
+
+      const sections = Object.keys(grouped).map((k) => ({
         title: k,
-        data: grouped[k]
+        data: grouped[k],
       }));
       setJournalSections(sections);
     };
 
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       if (emojis.length > 0) fetchJournals();
     });
-    
+
     if (emojis.length > 0) fetchJournals();
-    
+
     return unsubscribe;
   }, [navigation, emojis]);
 
   return (
-    <ImageBackground source={backgrounds.home} style={[styles.container, { backgroundColor: colors.background.main }]}>
+    <ImageBackground
+      source={backgrounds.home}
+      style={[styles.container, { backgroundColor: colors.background.main }]}
+    >
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.journalListContent}>
-          <View style={{ paddingHorizontal: SIZES.spacing.xl, paddingTop: 20, marginBottom: 20 }}>
-            <Text style={[styles.screenTitle, { color: colors.text.dark, textAlign: 'left' }]}>{t('home_title')}</Text>
-      <View style={styles.greetingContainer}>
-             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15 }}>
-               {loading ? (
-                 <ActivityIndicator color={colors.primary} />
-               ) : (
-                 emojis.map((emoji) => (
-                   <TouchableOpacity 
-                    key={emoji.id} 
-                    style={styles.moodIconButton}
-                    onPress={() => navigation.navigate("Add")}
-                   >
-                     <MoodIcon url={emoji.image} size={48} />
-                   </TouchableOpacity>
-                 ))
-               )}
-             </ScrollView>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.journalListContent}
+        >
+          <View
+            style={{
+              paddingHorizontal: SIZES.spacing.xl,
+              paddingTop: 20,
+              marginBottom: 20,
+            }}
+          >
+            <Text
+              style={[
+                styles.screenTitle,
+                { color: colors.text.dark, textAlign: "left" },
+              ]}
+            >
+              {t("home_title")}
+            </Text>
+            <View style={styles.greetingContainer}>
+              <MoodSelector
+                emojis={emojis}
+                loading={loading}
+                selectedMoodId={null}
+                onMoodChange={() => navigation.navigate("Add")}
+                containerStyle={{ paddingHorizontal: 0 }}
+              />
+            </View>
           </View>
-          </View>
-
-          
 
           {journalSections.length === 0 ? (
-            <EmptyState 
-              onPress={() => navigation.navigate("Add")} 
-            />
+            <EmptyState onPress={() => navigation.navigate("Add")} />
           ) : (
             journalSections.map((section, index) => (
               <View key={index}>
-                <View style={{ paddingHorizontal: SIZES.spacing.xl, paddingVertical: SIZES.spacing.s, marginTop: SIZES.spacing.s }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: colors.text.dark }}>{section.title}</Text>
+                <View
+                  style={{
+                    paddingHorizontal: SIZES.spacing.xl,
+                    paddingVertical: SIZES.spacing.s,
+                    marginTop: SIZES.spacing.s,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: FONTS.bold,
+                      fontSize: 16,
+                      color: colors.text.dark,
+                    }}
+                  >
+                    {section.title}
+                  </Text>
                 </View>
                 {section.data.map((item: any) => (
                   <View key={item.id} style={styles.journalItemContainer}>
@@ -163,8 +172,11 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }: { route: any }) => ({
         headerShown: false,
-        tabBarStyle: [styles.bottomTabBar, { backgroundColor: colors.background.tabBar }],
-        tabBarActiveTintColor: colors.primary,
+        tabBarStyle: [
+          styles.bottomTabBar,
+          { backgroundColor: colors.background.tabBar },
+        ],
+        tabBarActiveTintColor: colors.secondary,
         tabBarInactiveTintColor: colors.text.muted,
         tabBarLabelStyle: { fontFamily: FONTS.regular, fontSize: 12 },
         tabBarIcon: ({ color, size }: { color: string; size: number }) => {
@@ -174,7 +186,16 @@ function MainTabs() {
             return React.createElement(BarChart2 as any, { size, color });
           if (route.name === "Add")
             return (
-              <View style={[styles.addButton, { backgroundColor: colors.primary, shadowColor: colors.primary, borderColor: colors.background.white }]}>
+              <View
+                style={[
+                  styles.addButton,
+                  {
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary,
+                    borderColor: colors.background.white,
+                  },
+                ]}
+              >
                 {React.createElement(Plus as any, {
                   size: 32,
                   color: colors.text.textOnDark,
@@ -191,12 +212,12 @@ function MainTabs() {
       <Tab.Screen
         name="Home"
         component={FeedScreen}
-        options={{ tabBarLabel: t('home') }}
+        options={{ tabBarLabel: t("home") }}
       />
       <Tab.Screen
         name="Stats"
         component={StatsScreen}
-        options={{ tabBarLabel: t('stats') }}
+        options={{ tabBarLabel: t("stats") }}
       />
       <Tab.Screen
         name="Add"
@@ -209,12 +230,12 @@ function MainTabs() {
       <Tab.Screen
         name="Journeys"
         component={FolderScreen}
-        options={{ tabBarLabel: t('journeys') }}
+        options={{ tabBarLabel: t("journeys") }}
       />
-      <Tab.Screen 
-        name="Setting" 
-        component={SettingScreen} 
-        options={{ tabBarLabel: t('settings') }} 
+      <Tab.Screen
+        name="Setting"
+        component={SettingScreen}
+        options={{ tabBarLabel: t("settings") }}
       />
     </Tab.Navigator>
   );
@@ -254,7 +275,12 @@ function AppContent() {
 
   if (!fontsLoaded) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background.main }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background.main },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -306,14 +332,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: SIZES.radius.xl,
   },
-  activeTab: {
-  },
+  activeTab: {},
   tabText: {
     fontFamily: FONTS.regular,
     fontSize: 16,
   },
-  activeTabText: {
-  },
+  activeTabText: {},
   feedList: {
     paddingHorizontal: 24,
     paddingBottom: 20,
@@ -328,7 +352,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderWidth: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
+    shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.05,
     shadowRadius: 15,
     elevation: 20,
@@ -353,32 +377,32 @@ const styles = StyleSheet.create({
   greetingContainer: {
     paddingHorizontal: SIZES.spacing.xl,
     marginBottom: SIZES.spacing.l,
-    alignItems: 'center',
+    alignItems: "center",
   },
   greetingQuote: {
     fontFamily: FONTS.regular,
     fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
+    fontStyle: "italic",
+    textAlign: "center",
     marginBottom: SIZES.spacing.xs,
   },
   greetingQuestion: {
     fontFamily: FONTS.bold,
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: SIZES.spacing.m,
   },
   moodIconsRow: {
-    flexDirection: 'row',
-    width: '100%',
+    flexDirection: "row",
+    width: "100%",
   },
   moodIconButton: {
     width: 48,
     height: 48,
   },
   moodIconLarge: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
   },
 });

@@ -1,11 +1,19 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ImageBackground } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../context/ThemeContext';
-import { FONTS, SIZES } from '../constants/theme';
-import { ArrowLeft } from 'lucide-react-native';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+  ImageBackground,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
+import { FONTS, SIZES } from "../constants/theme";
+import { ArrowLeft } from "lucide-react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 // Calculate card width for 3 items per row with gap
 const CARD_WIDTH = (width - SIZES.spacing.xl * 2 - SIZES.spacing.m * 2) / 3 - 2;
 
@@ -18,39 +26,77 @@ export default function ThemeListScreen({ navigation }: any) {
   };
 
   return (
-    <ImageBackground source={backgrounds.home} style={[styles.container, { backgroundColor: colors.background.main }]}>
+    <ImageBackground
+      source={backgrounds.home}
+      style={[styles.container, { backgroundColor: colors.background.main }]}
+    >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <ArrowLeft color={colors.text.dark} size={24} />
           </TouchableOpacity>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>Tất cả giao diện</Text>
+          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>
+            Tất cả giao diện
+          </Text>
           <View style={{ width: 24 }} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.grid}>
             {availableThemes.map((theme) => {
               const primaryColor = theme.fullTheme.colors.primary;
-              const cardColor = theme.fullTheme.colors.backgroundCard;
+              const cardColor = "#fff";
               const textColor = theme.fullTheme.colors.text.dark;
 
               return (
                 <TouchableOpacity
                   key={theme.id}
-                  style={[
-                    styles.themeCard,
-                    { backgroundColor: cardColor }
-                  ]}
+                  style={[styles.themeCard, { backgroundColor: cardColor }]}
                   onPress={() => handleThemeChange(theme.id)}
                 >
-                  <View style={[styles.themeTopBar, { backgroundColor: primaryColor }]} />
+                  <View
+                    style={[
+                      styles.themeTopBar,
+                      { backgroundColor: primaryColor },
+                    ]}
+                  />
                   <View style={styles.themeContent}>
-                    <View style={[styles.themeLine, { backgroundColor: primaryColor, width: '60%' }]} />
-                    <View style={[styles.themeLine, { backgroundColor: textColor, width: '80%', opacity: 0.3 }]} />
-                    <View style={[styles.themeLine, { backgroundColor: primaryColor, width: '40%', opacity: 0.4 }]} />
+                    <View
+                      style={[
+                        styles.themeLine,
+                        { backgroundColor: primaryColor, width: "60%" },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeLine,
+                        {
+                          backgroundColor: textColor,
+                          width: "80%",
+                          opacity: 0.3,
+                        },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeLine,
+                        {
+                          backgroundColor: primaryColor,
+                          width: "40%",
+                          opacity: 0.4,
+                        },
+                      ]}
+                    />
                   </View>
-                  <Text style={[styles.themeName, { color: primaryColor }]} numberOfLines={1}>{theme.name}</Text>
+                  <Text
+                    style={[styles.themeName, { color: primaryColor }]}
+                    numberOfLines={1}
+                  >
+                    {theme.name}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -65,9 +111,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: SIZES.spacing.xl,
     paddingVertical: SIZES.spacing.m,
     marginBottom: SIZES.spacing.m,
@@ -81,17 +127,17 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: SIZES.spacing.m,
   },
   themeCard: {
     width: CARD_WIDTH,
     height: 120,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     marginBottom: SIZES.spacing.xs,
   },
   themeTopBar: { height: 24 },
@@ -99,13 +145,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 8,
     gap: 6,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   themeLine: { height: 6, borderRadius: 3 },
   themeName: {
     fontFamily: FONTS.bold,
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     paddingBottom: 8,
   },
 });

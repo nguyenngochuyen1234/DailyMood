@@ -31,10 +31,18 @@ export default function JourneyPicker({
     <>
       <View style={styles.section}>
         {textInVisible && (
-          <Text style={[styles.sectionLabel, { color: colors.text.dark }]}>Chọn Hành trình</Text>
+          <Text style={[styles.sectionLabel, { color: colors.text.dark }]}>
+            Chọn Hành trình
+          </Text>
         )}
-        <TouchableOpacity 
-          style={[styles.journeyPickerTrigger, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]} 
+        <TouchableOpacity
+          style={[
+            styles.journeyPickerTrigger,
+            {
+              backgroundColor: colors.backgroundCard,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={onPress}
         >
           <View style={styles.journeyTriggerLeft}>
@@ -49,7 +57,9 @@ export default function JourneyPicker({
             <Text
               style={[
                 styles.selectedJourneyText,
-                { color: selectedJourney ? colors.text.dark : colors.text.muted },
+                {
+                  color: selectedJourney ? colors.text.dark : colors.text.muted,
+                },
               ]}
             >
               {selectedJourney ? selectedJourney.name : "Không chọn hành trình"}
@@ -74,24 +84,46 @@ export default function JourneyPicker({
           activeOpacity={1}
           onPress={onModalClose}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.background.white }]}>
-            <Text style={[styles.modalTitle, { color: colors.text.dark }]}>Chọn Hành trình</Text>
-            
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background.main },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.text.dark }]}>
+              Chọn Hành trình
+            </Text>
+
             <TouchableOpacity
+              style={[
+                styles.journeyOption,
+                !selectedJourney && {
+                  backgroundColor: `${colors.primary}0D`,
+                  borderColor: colors.primary,
+                  borderWidth: 1,
+                },
+              ]}
+              onPress={() => {
+                onJourneySelect(null);
+                onModalClose();
+              }}
+            >
+              <View
                 style={[
-                  styles.journeyOption,
-                  !selectedJourney && { backgroundColor: `${colors.primary}0D`, borderColor: colors.primary, borderWidth: 1 },
+                  styles.miniIconCircle,
+                  { backgroundColor: colors.background.soft },
                 ]}
-                onPress={() => {
-                  onJourneySelect(null);
-                  onModalClose();
-                }}
               >
-                <View style={[styles.miniIconCircle, { backgroundColor: colors.background.soft }]}>
-                  <Compass size={20} color={colors.text.muted} />
-                </View>
-                <Text style={[styles.optionText, { color: colors.text.dark }]}>Không chọn hành trình</Text>
-                {!selectedJourney && React.createElement(Check as any, { size: 18, color: colors.primary })}
+                <Compass size={20} color={colors.text.muted} />
+              </View>
+              <Text style={[styles.optionText, { color: colors.text.dark }]}>
+                Không chọn hành trình
+              </Text>
+              {!selectedJourney &&
+                React.createElement(Check as any, {
+                  size: 18,
+                  color: colors.primary,
+                })}
             </TouchableOpacity>
 
             {journeys.map((item) => (
@@ -99,21 +131,32 @@ export default function JourneyPicker({
                 key={item.id}
                 style={[
                   styles.journeyOption,
-                  selectedJourney?.id === item.id && { backgroundColor: `${colors.primary}0D`, borderColor: colors.primary, borderWidth: 1 },
+                  selectedJourney?.id === item.id && {
+                    backgroundColor: `${colors.primary}0D`,
+                    borderColor: colors.primary,
+                    borderWidth: 1,
+                  },
                 ]}
                 onPress={() => {
                   onJourneySelect(item);
                   onModalClose();
                 }}
               >
-                <View style={[styles.miniIconCircle, { backgroundColor: colors.background.soft }]}>
+                <View
+                  style={[
+                    styles.miniIconCircle,
+                    { backgroundColor: colors.background.soft },
+                  ]}
+                >
                   <Compass size={20} color={colors.text.dark} />
                 </View>
-                <Text style={[styles.optionText, { color: colors.text.dark }]}>{item.name}</Text>
+                <Text style={[styles.optionText, { color: colors.text.dark }]}>
+                  {item.name}
+                </Text>
                 {selectedJourney?.id === item.id &&
                   React.createElement(Check as any, {
                     size: 18,
-                    color: colors.primary,
+                    color: colors.text.dark,
                   })}
               </TouchableOpacity>
             ))}
@@ -126,12 +169,12 @@ export default function JourneyPicker({
             >
               {React.createElement(Plus as any, {
                 size: 20,
-                color: colors.primary,
+                color: colors.text.dark,
               })}
               <Text
                 style={[
                   styles.optionText,
-                  { color: colors.primary, fontFamily: FONTS.bold },
+                  { color: colors.text.dark, fontFamily: FONTS.bold },
                 ]}
               >
                 Tạo hành trình mới

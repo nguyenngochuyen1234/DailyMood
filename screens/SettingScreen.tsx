@@ -1,20 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Image, Dimensions, ImageBackground,
-  Switch, Alert, ActivityIndicator, Modal
-} from 'react-native';
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Dimensions,
+  ImageBackground,
+  Switch,
+  Alert,
+  ActivityIndicator,
+  Modal,
+} from "react-native";
 import {
-  Bell, Globe, Database, Mail, Star,
-  Shield, ChevronRight, Crown, Sparkles, Lock
-} from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { FONTS, SIZES } from '../constants/theme';
-import { useTheme, ThemeColors, ThemeBackgrounds } from '../context/ThemeContext';
-import { useMood } from '../context/MoodContext';
-import { useGoogleAuth } from '../hooks/useGoogleAuth';
-import { backupToDrive, restoreFromDrive } from '../lib/googleDriveService';
-const { width } = Dimensions.get('window');
+  Bell,
+  Globe,
+  Database,
+  Mail,
+  Star,
+  Shield,
+  ChevronRight,
+  Crown,
+  Sparkles,
+  Lock,
+} from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FONTS, SIZES } from "../constants/theme";
+import {
+  useTheme,
+  ThemeColors,
+  ThemeBackgrounds,
+} from "../context/ThemeContext";
+import { useMood } from "../context/MoodContext";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
+import { backupToDrive, restoreFromDrive } from "../lib/googleDriveService";
+const { width } = Dimensions.get("window");
 
 // Removed static THEME_PREVIEWS as they are now fetched from Supabase via ThemeContext
 
@@ -31,17 +52,36 @@ interface SettingItemProps {
   colors: any;
 }
 
-function SettingItem({ 
-  icon, label, value, onPress, showChevron = true, 
-  showSwitch, switchValue, onSwitchChange, primaryColor, colors 
+function SettingItem({
+  icon,
+  label,
+  value,
+  onPress,
+  showChevron = true,
+  showSwitch,
+  switchValue,
+  onSwitchChange,
+  primaryColor,
+  colors,
 }: SettingItemProps) {
   return (
-    <TouchableOpacity style={settingStyles.item} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={settingStyles.item}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={settingStyles.itemLeft}>
-        <View style={[settingStyles.iconCircle, { backgroundColor: `${primaryColor}1A` }]}>
+        <View
+          style={[
+            settingStyles.iconCircle,
+            { backgroundColor: `${primaryColor}1A` },
+          ]}
+        >
           {React.createElement(icon as any, { size: 20, color: primaryColor })}
         </View>
-        <Text style={[settingStyles.itemLabel, { color: colors.text.dark }]}>{label}</Text>
+        <Text style={[settingStyles.itemLabel, { color: colors.text.dark }]}>
+          {label}
+        </Text>
       </View>
       <View style={settingStyles.itemRight}>
         {value && <Text style={settingStyles.itemValue}>{value}</Text>}
@@ -49,11 +89,14 @@ function SettingItem({
           <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: '#d1d5db', true: `${primaryColor}80` }}
-            thumbColor={switchValue ? primaryColor : '#f4f3f4'}
+            trackColor={{ false: "#d1d5db", true: `${primaryColor}80` }}
+            thumbColor={switchValue ? primaryColor : "#f4f3f4"}
           />
         ) : showChevron ? (
-          React.createElement(ChevronRight as any, { size: 18, color: '#94a3b8' })
+          React.createElement(ChevronRight as any, {
+            size: 18,
+            color: "#94a3b8",
+          })
         ) : null}
       </View>
     </TouchableOpacity>
@@ -61,7 +104,8 @@ function SettingItem({
 }
 
 export default function SettingScreen({ navigation }: any) {
-  const { colors, backgrounds, availableThemes, changeTheme, selectedThemeId } = useTheme();
+  const { colors, backgrounds, availableThemes, changeTheme, selectedThemeId } =
+    useTheme();
   const { t, language, setLanguage } = useMood();
   const [notifications, setNotifications] = useState(true);
   // Google Drive Sync
@@ -70,19 +114,19 @@ export default function SettingScreen({ navigation }: any) {
   const [showSyncModal, setShowSyncModal] = useState(false);
 
   const toggleLanguage = () => {
-    const nextLang = language === 'vi' ? 'en' : 'vi';
+    const nextLang = language === "vi" ? "en" : "vi";
     setLanguage(nextLang);
   };
 
   const handleBackup = async () => {
-    if (!accessToken) return Alert.alert('Lỗi', 'Vui lòng đăng nhập trước');
+    if (!accessToken) return Alert.alert("Lỗi", "Vui lòng đăng nhập trước");
     try {
       setSyncLoading(true);
       const mockDataToBackup = { settings: { theme: selectedThemeId } }; // TODO: Thay bằng data thật
       await backupToDrive(accessToken, mockDataToBackup);
-      Alert.alert('Thành công', 'Đã sao lưu lên Google Drive!');
+      Alert.alert("Thành công", "Đã sao lưu lên Google Drive!");
     } catch (e: any) {
-      Alert.alert('Lỗi sao lưu', e.message);
+      Alert.alert("Lỗi sao lưu", e.message);
     } finally {
       setSyncLoading(false);
       setShowSyncModal(false);
@@ -90,14 +134,14 @@ export default function SettingScreen({ navigation }: any) {
   };
 
   const handleRestore = async () => {
-    if (!accessToken) return Alert.alert('Lỗi', 'Vui lòng đăng nhập trước');
+    if (!accessToken) return Alert.alert("Lỗi", "Vui lòng đăng nhập trước");
     try {
       setSyncLoading(true);
       const data = await restoreFromDrive(accessToken);
       // Removed logging
-      Alert.alert('Thành công', 'Đã phục hồi dữ liệu từ Google Drive!');
+      Alert.alert("Thành công", "Đã phục hồi dữ liệu từ Google Drive!");
     } catch (e: any) {
-      Alert.alert('Lỗi', 'Không lấy được dữ liệu backup cũ. ' + e.message);
+      Alert.alert("Lỗi", "Không lấy được dữ liệu backup cũ. " + e.message);
     } finally {
       setSyncLoading(false);
       setShowSyncModal(false);
@@ -114,75 +158,192 @@ export default function SettingScreen({ navigation }: any) {
       style={[styles.container, { backgroundColor: colors.background.main }]}
     >
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* Profile Section */}
           <View style={styles.profileSection}>
             <Image
-              source={userInfo?.picture ? { uri: userInfo.picture } : { uri: 'https://ui-avatars.com/api/?name=Guest&background=random' }}
+              source={
+                userInfo?.picture
+                  ? { uri: userInfo.picture }
+                  : {
+                      uri: "https://ui-avatars.com/api/?name=Guest&background=random",
+                    }
+              }
               style={[styles.avatar, { borderColor: colors.primary }]}
             />
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: colors.text.dark }]}>
-                {userInfo ? userInfo.name : (language === 'vi' ? "Khách" : "Guest")}
+                {userInfo
+                  ? userInfo.name
+                  : language === "vi"
+                    ? "Khách"
+                    : "Guest"}
               </Text>
               {userInfo ? (
-                <Text style={{ color: colors.text.muted, fontSize: 14, marginTop: -2 }}>
+                <Text
+                  style={{
+                    color: colors.text.muted,
+                    fontSize: 14,
+                    marginTop: -2,
+                  }}
+                >
                   {userInfo.email}
                 </Text>
               ) : (
-                <TouchableOpacity onPress={() => promptAsync()} style={styles.loginBadge}>
-                  <Text style={styles.loginBadgeText}>{t('login_google')}</Text>
+                <TouchableOpacity
+                  onPress={() => promptAsync()}
+                  style={[
+                    styles.loginBadge,
+                    { backgroundColor: `${colors.primary}` },
+                  ]}
+                >
+                  <Text style={styles.loginBadgeText}>{t("login_google")}</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
           {/* Premium Banner */}
-          <View style={[styles.premiumBanner, { backgroundColor: `${colors.primary}1F`, borderColor: `${colors.primary}33` }]}>
+          <View
+            style={[
+              styles.premiumBanner,
+              {
+                backgroundColor: `${colors.primary}1F`,
+                borderColor: `${colors.primary}33`,
+              },
+            ]}
+          >
             <View style={styles.premiumIconRow}>
-              {React.createElement(Sparkles as any, { size: 20, color: '#d4a017' })}
-              <Text style={[styles.premiumTitle, { color: colors.text.dark }]}>Unlock the Wildflower Tier</Text>
+              {React.createElement(Sparkles as any, {
+                size: 20,
+                color: "#d4a017",
+              })}
+              <Text style={[styles.premiumTitle, { color: colors.text.dark }]}>
+                Unlock the Wildflower Tier
+              </Text>
             </View>
             <Text style={[styles.premiumDesc, { color: colors.text.dark }]}>
-              Get unlimited journal entries, advanced emotional analytics, and exclusive meadow themes.
+              Get unlimited journal entries, advanced emotional analytics, and
+              exclusive meadow themes.
             </Text>
-            <TouchableOpacity style={[styles.premiumButton, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.premiumButtonText, { color: colors.text.textOnDark }]}>Start your free trial</Text>
+            <TouchableOpacity
+              style={[
+                styles.premiumButton,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.premiumButtonText,
+                  { color: colors.text.textOnDark },
+                ]}
+              >
+                Start your free trial
+              </Text>
             </TouchableOpacity>
           </View>
-          
+
           {/* Change Theme */}
-          <View style={[styles.card, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={[styles.cardTitle, { color: colors.text.dark, marginBottom: 0 }]}>{t('theme')}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('ThemeList')}>
-                <Text style={{ fontFamily: FONTS.bold, color: colors.primary }}>{t('view_all')}</Text>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.backgroundCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <Text
+                style={[
+                  styles.cardTitle,
+                  { color: colors.text.dark, marginBottom: 0 },
+                ]}
+              >
+                {t("theme")}
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ThemeList")}
+              >
+                <Text
+                  style={{ fontFamily: FONTS.bold, color: colors.secondary }}
+                >
+                  {t("view_all")}
+                </Text>
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.themeScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.themeScroll}
+            >
               {availableThemes.map((theme) => {
                 const primaryColor = theme.fullTheme.colors.primary;
                 const cardColor = theme.fullTheme.colors.backgroundCard;
                 const textColor = theme.fullTheme.colors.text.dark;
-                
+
                 return (
                   <TouchableOpacity
                     key={theme.id}
                     style={[
                       styles.themeCard,
-                      { backgroundColor: cardColor },
-                      selectedThemeId === theme.id && { borderColor: colors.primary },
+                      { backgroundColor: "#fff" },
+                      selectedThemeId === theme.id && {
+                        borderColor: colors.primary,
+                      },
                     ]}
                     onPress={() => handleThemeChange(theme.id)}
                   >
-                    <View style={[styles.themeTopBar, { backgroundColor: primaryColor }]} />
+                    <View
+                      style={[
+                        styles.themeTopBar,
+                        { backgroundColor: primaryColor },
+                      ]}
+                    />
                     <View style={styles.themeContent}>
-                      <View style={[styles.themeLine, { backgroundColor: primaryColor, width: '60%' }]} />
-                      <View style={[styles.themeLine, { backgroundColor: textColor, width: '80%', opacity: 0.3 }]} />
-                      <View style={[styles.themeLine, { backgroundColor: primaryColor, width: '40%', opacity: 0.4 }]} />
+                      <View
+                        style={[
+                          styles.themeLine,
+                          { backgroundColor: primaryColor, width: "60%" },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.themeLine,
+                          {
+                            backgroundColor: textColor,
+                            width: "80%",
+                            opacity: 0.3,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.themeLine,
+                          {
+                            backgroundColor: primaryColor,
+                            width: "40%",
+                            opacity: 0.4,
+                          },
+                        ]}
+                      />
                     </View>
-                    <Text style={[styles.themeName, { color: primaryColor }]} numberOfLines={1}>{theme.name}</Text>
+                    <Text
+                      style={[styles.themeName, { color: primaryColor }]}
+                      numberOfLines={1}
+                    >
+                      {theme.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -190,42 +351,76 @@ export default function SettingScreen({ navigation }: any) {
           </View>
 
           {/* Settings List */}
-          <View style={[styles.settingsCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.settingsCard,
+              {
+                backgroundColor: colors.backgroundCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <SettingItem
               icon={Bell}
               colors={colors}
-              label={t('notifications')}
+              label={t("notifications")}
               showChevron={false}
               showSwitch
               switchValue={notifications}
               onSwitchChange={setNotifications}
               primaryColor={colors.primary}
             />
-            <SettingItem 
-              icon={Globe} 
-              colors={colors} 
-              label={t('language')} 
-              value={language === 'vi' ? "Tiếng Việt" : "English"} 
-              primaryColor={colors.primary} 
+            <SettingItem
+              icon={Globe}
+              colors={colors}
+              label={t("language")}
+              value={language === "vi" ? "Tiếng Việt" : "English"}
+              primaryColor={colors.primary}
               onPress={toggleLanguage}
             />
-            <SettingItem 
-              icon={Database} 
-              colors={colors} 
-              label={t('data_sync')} 
-              primaryColor={colors.primary} 
+            <SettingItem
+              icon={Database}
+              colors={colors}
+              label={t("data_sync")}
+              primaryColor={colors.primary}
               onPress={() => setShowSyncModal(true)}
             />
-            <SettingItem icon={Lock} colors={colors} label={t('lock_app')} primaryColor={colors.primary} />
+            <SettingItem
+              icon={Lock}
+              colors={colors}
+              label={t("lock_app")}
+              primaryColor={colors.primary}
+            />
           </View>
 
-          <View style={[styles.settingsCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
-            <SettingItem icon={Mail} colors={colors} label={t('feedback')} primaryColor={colors.primary} />
-            <SettingItem icon={Star} colors={colors} label={t('rate_app')} primaryColor={colors.primary} />
-            <SettingItem icon={Shield} colors={colors} label={t('privacy')} primaryColor={colors.primary} />
+          <View
+            style={[
+              styles.settingsCard,
+              {
+                backgroundColor: colors.backgroundCard,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <SettingItem
+              icon={Mail}
+              colors={colors}
+              label={t("feedback")}
+              primaryColor={colors.primary}
+            />
+            <SettingItem
+              icon={Star}
+              colors={colors}
+              label={t("rate_app")}
+              primaryColor={colors.primary}
+            />
+            <SettingItem
+              icon={Shield}
+              colors={colors}
+              label={t("privacy")}
+              primaryColor={colors.primary}
+            />
           </View>
-
-
 
           <View style={{ height: 120 }} />
         </ScrollView>
@@ -234,45 +429,83 @@ export default function SettingScreen({ navigation }: any) {
       {/* Modal Đồng Bộ Google Drive */}
       <Modal visible={showSyncModal} transparent animationType="fade">
         <View style={syncStyles.modalOverlay}>
-          <View style={[syncStyles.modalContent, { backgroundColor: colors.background.white }]}>
-            <Text style={[syncStyles.modalTitle, { color: colors.text.dark }]}>Đồng Bộ Google Drive</Text>
-            
+          <View
+            style={[
+              syncStyles.modalContent,
+              { backgroundColor: colors.background.white },
+            ]}
+          >
+            <Text style={[syncStyles.modalTitle, { color: colors.primary }]}>
+              Đồng Bộ Google Drive
+            </Text>
+
             {!userInfo ? (
-              <TouchableOpacity 
-                style={[syncStyles.actionBtn, { backgroundColor: '#4285F4' }]} 
+              <TouchableOpacity
+                style={[syncStyles.actionBtn, { backgroundColor: "#4285F4" }]}
                 onPress={() => promptAsync()}
               >
                 <Text style={syncStyles.btnText}>Đăng nhập với Google</Text>
               </TouchableOpacity>
             ) : (
               <View style={syncStyles.userInfoContainer}>
-                {userInfo.picture && <Image source={{uri: userInfo.picture}} style={syncStyles.userAvatar} />}
-                <Text style={{color: colors.text.dark, marginBottom: 16}}>{userInfo.email}</Text>
-                
-                <TouchableOpacity 
-                  style={[syncStyles.actionBtn, { backgroundColor: colors.primary, marginBottom: 8 }]} 
+                {userInfo.picture && (
+                  <Image
+                    source={{ uri: userInfo.picture }}
+                    style={syncStyles.userAvatar}
+                  />
+                )}
+                <Text style={{ color: colors.text.dark, marginBottom: 16 }}>
+                  {userInfo.email}
+                </Text>
+
+                <TouchableOpacity
+                  style={[
+                    syncStyles.actionBtn,
+                    { backgroundColor: colors.primary, marginBottom: 8 },
+                  ]}
                   onPress={handleBackup}
                   disabled={syncLoading}
                 >
-                  {syncLoading ? <ActivityIndicator color="#fff" /> : <Text style={syncStyles.btnText}>Sao lưu lên Drive</Text>}
+                  {syncLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={syncStyles.btnText}>Sao lưu lên Drive</Text>
+                  )}
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[syncStyles.actionBtn, { backgroundColor: colors.text.muted }]} 
+
+                <TouchableOpacity
+                  style={[
+                    syncStyles.actionBtn,
+                    { backgroundColor: colors.text.muted },
+                  ]}
                   onPress={handleRestore}
                   disabled={syncLoading}
                 >
-                    {syncLoading ? <ActivityIndicator color="#fff" /> : <Text style={syncStyles.btnText}>Phục hồi từ Drive</Text>}
+                  {syncLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={syncStyles.btnText}>Phục hồi từ Drive</Text>
+                  )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={{marginTop: 16}} onPress={logout}>
-                  <Text style={{color: colors.error, textDecorationLine: 'underline'}}>Đăng xuất</Text>
+                <TouchableOpacity style={{ marginTop: 16 }} onPress={logout}>
+                  <Text
+                    style={{
+                      color: colors.error,
+                      textDecorationLine: "underline",
+                    }}
+                  >
+                    Đăng xuất
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            <TouchableOpacity style={syncStyles.closeBtn} onPress={() => setShowSyncModal(false)}>
-              <Text style={{color: colors.text.muted, marginTop: 12}}>Đóng</Text>
+            <TouchableOpacity
+              style={syncStyles.closeBtn}
+              onPress={() => setShowSyncModal(false)}
+            >
+              <Text style={{ color: colors.primary, marginTop: 12 }}>Đóng</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -282,51 +515,65 @@ export default function SettingScreen({ navigation }: any) {
 }
 
 const syncStyles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '85%', borderRadius: 16, padding: 24, alignItems: 'center' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+  },
   modalTitle: { fontFamily: FONTS.bold, fontSize: 18, marginBottom: 20 },
-  actionBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
-  userInfoContainer: { width: '100%', alignItems: 'center' },
+  actionBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  btnText: { color: "#fff", fontFamily: FONTS.bold, fontSize: 15 },
+  userInfoContainer: { width: "100%", alignItems: "center" },
   userAvatar: { width: 50, height: 50, borderRadius: 25, marginBottom: 8 },
-  closeBtn: { padding: 10, marginTop: 10 }
+  closeBtn: { padding: 10, marginTop: 10 },
 });
 
 const settingStyles = StyleSheet.create({
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 14,
   },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   itemLabel: {
     fontFamily: FONTS.regular,
     fontSize: 16,
-
   },
   itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   itemValue: {
     fontFamily: FONTS.regular,
     fontSize: 14,
-    color: '#94a3b8',
+    color: "#94a3b8",
   },
 });
 
@@ -338,8 +585,8 @@ const styles = StyleSheet.create({
     paddingTop: SIZES.spacing.m,
   },
   profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   avatar: {
@@ -355,33 +602,32 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   proBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff7e0',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff7e0",
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
     gap: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   proBadgeText: {
     fontFamily: FONTS.bold,
     fontSize: 10,
-    color: '#d4a017',
+    color: "#d4a017",
     letterSpacing: 1,
   },
   loginBadge: {
-    backgroundColor: '#4285F4',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 14,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 4,
   },
   loginBadgeText: {
     fontFamily: FONTS.bold,
     fontSize: 12,
-    color: '#fff',
+    color: "#fff",
   },
   premiumBanner: {
     borderRadius: SIZES.radius.xxl,
@@ -390,8 +636,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   premiumIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 8,
   },
@@ -409,12 +655,12 @@ const styles = StyleSheet.create({
   premiumButton: {
     paddingVertical: 12,
     borderRadius: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   premiumButtonText: {
     fontFamily: FONTS.bold,
     fontSize: 14,
-    color: '#FFF',
+    color: "#FFF",
   },
   card: {
     borderRadius: SIZES.radius.xxl,
@@ -433,22 +679,22 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 16,
     marginHorizontal: 6,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   themeTopBar: { height: 24 },
   themeContent: {
     flex: 1,
     padding: 8,
     gap: 6,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   themeLine: { height: 6, borderRadius: 3 },
   themeName: {
     fontFamily: FONTS.bold,
     fontSize: 10,
-    textAlign: 'center',
+    textAlign: "center",
     paddingBottom: 6,
   },
   settingsCard: {
