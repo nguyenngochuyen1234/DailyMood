@@ -169,8 +169,8 @@ export default function SettingScreen({ navigation }: any) {
                 userInfo?.picture
                   ? { uri: userInfo.picture }
                   : {
-                      uri: "https://ui-avatars.com/api/?name=Guest&background=random",
-                    }
+                    uri: "https://ui-avatars.com/api/?name=Guest&background=random",
+                  }
               }
               style={[styles.avatar, { borderColor: colors.primary }]}
             />
@@ -276,7 +276,7 @@ export default function SettingScreen({ navigation }: any) {
                 onPress={() => navigation.navigate("ThemeList")}
               >
                 <Text
-                  style={{ fontFamily: FONTS.bold, color: colors.secondary }}
+                  style={{ fontFamily: FONTS.bold, color: colors.text.dark }}
                 >
                   {t("view_all")}
                 </Text>

@@ -59,6 +59,8 @@ export default function AddJournalScreen({
   }, [emojis, isEditing]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [originalTime, setOriginalTime] = useState<string | null>(null);
 
@@ -292,7 +294,7 @@ export default function AddJournalScreen({
 
                 {
                   color: colors.text.dark,
-                  borderBottomColor: colors.border,
+                  borderBottomColor: isTitleFocused ? colors.primary : colors.border,
                   flex: 1,
                 },
               ]}
@@ -300,27 +302,26 @@ export default function AddJournalScreen({
               placeholderTextColor={colors.text.muted}
               value={title}
               onChangeText={setTitle}
+              onFocus={() => setIsTitleFocused(true)}
+              onBlur={() => setIsTitleFocused(false)}
             />
-            <View
-              style={[
-                styles.descriptionContainer,
-                {
-                  backgroundColor: colors.backgroundCard,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <TextInput
-                style={[styles.descriptionInput, { color: colors.text.dark }]}
-                placeholder="Write about your day..."
-                placeholderTextColor={colors.text.muted}
-                multiline
-                textAlignVertical="top"
-                value={description}
-                onChangeText={setDescription}
-              />
-            </View>
+
+            <TextInput
+              style={[styles.descriptionInput, {
+                color: colors.text.dark, backgroundColor: colors.backgroundCard,
+                borderColor: isDescriptionFocused ? colors.primary : colors.border,
+              }]}
+              placeholder="Write about your day..."
+              placeholderTextColor={colors.text.muted}
+              multiline
+              textAlignVertical="top"
+              value={description}
+              onChangeText={setDescription}
+              onFocus={() => setIsDescriptionFocused(true)}
+              onBlur={() => setIsDescriptionFocused(false)}
+            />
           </View>
+
 
           {/* Add Photo Button */}
           <TouchableOpacity
@@ -446,17 +447,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: SIZES.spacing.s,
   },
-  descriptionContainer: {
-    borderRadius: SIZES.radius.xl,
-    padding: SIZES.spacing.l,
-    borderWidth: 1,
-    minHeight: 200,
-  },
+
   descriptionInput: {
     fontFamily: FONTS.regular,
     fontSize: 18,
     lineHeight: 24,
     flex: 1,
+    borderRadius: SIZES.radius.xl,
+    padding: SIZES.spacing.l,
+    borderWidth: 1,
+    minHeight: 200,
+
   },
   addPhotoButton: {
     flexDirection: "row",

@@ -54,10 +54,10 @@ export default function StatsScreen({ navigation }: any) {
     journals.forEach((j) => {
       const d = new Date(j.time);
       const dateStr = `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
-      
+
       if (!grouped[dateStr]) grouped[dateStr] = [];
       const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
-      
+
       grouped[dateStr].push({
         id: j.id,
         time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
@@ -67,7 +67,7 @@ export default function StatsScreen({ navigation }: any) {
         timestamp: d.getTime(),
       });
     });
-    
+
     return Object.keys(grouped).map((k) => ({
       title: k,
       data: grouped[k].sort((a, b) => b.timestamp - a.timestamp),
@@ -154,67 +154,67 @@ export default function StatsScreen({ navigation }: any) {
         </View>
 
         <View style={[styles.mainTabContainer, { borderColor: colors.border, backgroundColor: colors.background.soft }]}>
-            <TouchableOpacity
-              style={[styles.mainTabBtn, mainTab === "Lịch" && { backgroundColor: colors.primary }]}
-              onPress={() => setMainTab("Lịch")}
-            >
-              <Text style={[styles.mainTabText, { color: mainTab === "Lịch" ? colors.text.textOnDark : colors.primary }]}>
-                {language === 'vi' ? "Lịch" : "Calendar"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.mainTabBtn, mainTab === "Hành trình" && { backgroundColor: colors.primary }]}
-              onPress={() => setMainTab("Hành trình")}
-            >
-              <Text style={[styles.mainTabText, { color: mainTab === "Hành trình" ? colors.text.textOnDark : colors.primary }]}>
-                {t('journeys')}
-              </Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.mainTabBtn, mainTab === "Lịch" && { backgroundColor: colors.primary }]}
+            onPress={() => setMainTab("Lịch")}
+          >
+            <Text style={[styles.mainTabText, { color: mainTab === "Lịch" ? colors.text.textOnDark : colors.primary }]}>
+              {language === 'vi' ? "Lịch" : "Calendar"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.mainTabBtn, mainTab === "Hành trình" && { backgroundColor: colors.primary }]}
+            onPress={() => setMainTab("Hành trình")}
+          >
+            <Text style={[styles.mainTabText, { color: mainTab === "Hành trình" ? colors.text.textOnDark : colors.primary }]}>
+              {t('journeys')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {mainTab === "Lịch" ? (
           <>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-            <View style={{ zIndex: 5 }}>
-                      <View style={{ marginBottom: SIZES.spacing.s, zIndex: 10, flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <View style={{ flex: 1 }}>
+              <View style={{ zIndex: 5 }}>
+                <View style={{ marginBottom: SIZES.spacing.s, zIndex: 10, flexDirection: "row", alignItems: "center", gap: 5 }}>
+                  <View style={{ flex: 1 }}>
 
-          <MonthSelector
-            currentDate={currentDate}
-            activeTab={activeTab}
-            onChangeMonth={changeMonth}
-            showDay={false}
-            />
-            </View>
-          <View style={[styles.viewModeContainer, { backgroundColor: colors.background.soft }]}>
-                {
-                  displayMode === "icon" ? <TouchableOpacity
-                  style={[
-                    styles.viewModeBtn,
-                    { backgroundColor: colors.primary },
-                  ]}
-                  onPress={() => setDisplayMode("image")}
-                >
-                  <Text style={[styles.viewModeText, { color: colors.text.textOnDark }]}>
-                    {language === 'vi' ? "Cảm xúc" : "Mood"}
-                  </Text>
-                </TouchableOpacity>:<TouchableOpacity
-                  style={[
-                    styles.viewModeBtn,
-                    { backgroundColor: colors.primary },
-                  ]}
-                  onPress={() => setDisplayMode("icon")}
-                >
-                  <Text style={[styles.viewModeText, { color: colors.text.textOnDark }]}>
-                    {language === 'vi' ? "Hình ảnh" : "Gallery"}
-                  </Text>
-                </TouchableOpacity>
-                }
+                    <MonthSelector
+                      currentDate={currentDate}
+                      activeTab={activeTab}
+                      onChangeMonth={changeMonth}
+                      showDay={false}
+                    />
+                  </View>
+                  <View style={[styles.viewModeContainer, { backgroundColor: colors.background.soft }]}>
+                    {
+                      displayMode === "icon" ? <TouchableOpacity
+                        style={[
+                          styles.viewModeBtn,
+                          { backgroundColor: colors.primary },
+                        ]}
+                        onPress={() => setDisplayMode("image")}
+                      >
+                        <Text style={[styles.viewModeText, { color: colors.text.textOnDark }]}>
+                          {language === 'vi' ? "Cảm xúc" : "Mood"}
+                        </Text>
+                      </TouchableOpacity> : <TouchableOpacity
+                        style={[
+                          styles.viewModeBtn,
+                          { backgroundColor: colors.primary },
+                        ]}
+                        onPress={() => setDisplayMode("icon")}
+                      >
+                        <Text style={[styles.viewModeText, { color: colors.text.textOnDark }]}>
+                          {language === 'vi' ? "Hình ảnh" : "Gallery"}
+                        </Text>
+                      </TouchableOpacity>
+                    }
+                  </View>
+                </View>
+
               </View>
-        </View>
-              
-            </View>
 
               <View style={styles.weekdayRow}>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
@@ -245,11 +245,11 @@ export default function StatsScreen({ navigation }: any) {
                 <View style={styles.galleryHeaderRow}>
                   <Text style={[styles.sectionTitle, { color: colors.text.dark, marginBottom: 0 }]}>{t('images')}</Text>
                   <TouchableOpacity onPress={() => navigation.navigate("Gallery")}>
-                    <Text style={{ fontFamily: FONTS.bold, color: colors.primary }}>{t('view_all')}</Text>
+                    <Text style={{ fontFamily: FONTS.bold, color: colors.text.dark }}>{t('view_all')}</Text>
                   </TouchableOpacity>
                 </View>
                 {mockGallery.length === 0 ? (
-                  <EmptyState 
+                  <EmptyState
                     title={t('no_data')}
                     description={t('no_image_desc')}
                     showButton={false}
@@ -272,7 +272,7 @@ export default function StatsScreen({ navigation }: any) {
         ) : (
           <View style={{ flex: 1 }}>
             {sortedSections.length === 0 ? (
-              <EmptyState 
+              <EmptyState
                 title={t('no_data')}
                 description={t('empty_desc')}
                 onPress={() => navigation.navigate("Add")}

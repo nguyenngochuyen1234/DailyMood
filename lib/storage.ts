@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Journey, JournalEntry } from '../types/models';
+import { syncJournalToDrive } from './driveService';
 
 const JOURNEYS_KEY = '@dailymood_journeys';
 const JOURNALS_KEY = '@dailymood_journals';
@@ -64,6 +65,22 @@ export const saveJournal = async (journal: JournalEntry): Promise<void> => {
     await AsyncStorage.setItem(JOURNALS_KEY, JSON.stringify(journals));
   } catch (e) {
     console.error("Error saving journal to storage", e);
+    throw e;
+  }
+};
+
+export const saveJournalWithSync = async (journal: JournalEntry, isPro: boolean = false): Promise<void> => {
+  try {
+    // 1. Luôn lưu vào local storage trước
+    await saveJournal(journal);
+
+    // 2. Nếu là tài khoản Pro, thực hiện đồng bộ ngay lên Drive
+    if (isPro) {
+      // Lưu ngầm, không await để tránh chờ giao diện
+      syncJournalToDrive(journal).catch(e => console.error("Auto sync failed", e));
+    }
+  } catch (e) {
+    console.error("Error in saveJournalWithSync", e);
     throw e;
   }
 };

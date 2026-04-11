@@ -58,7 +58,7 @@ export default function MoodSelector({
           style={[
             styles.moodLabel,
             { color: colors.primary },
-            selectedMoodId === emoji.id && { color: colors.secondary },
+            selectedMoodId === emoji.id && { color: colors.primary },
           ]}
         >
           {emoji.emotion_name || "Đang tải..."}
