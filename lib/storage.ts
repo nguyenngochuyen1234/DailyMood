@@ -4,6 +4,7 @@ import { syncAllToDrive } from './driveService';
 
 const JOURNEYS_KEY = '@dailymood_journeys';
 const JOURNALS_KEY = '@dailymood_journals';
+const DAILY_MOODS_KEY = '@dailymood_daily_moods';
 
 export const getJourneys = async (): Promise<Journey[]> => {
   try {
@@ -110,7 +111,7 @@ export const saveWithAutoSync = async (
     // 2. Tự động đồng bộ toàn bộ dữ liệu lên Drive
     const journeys = await getJourneys();
     const journals = await getJournals();
-    
+
     // Không await để không chặn UI, nhưng vẫn log lỗi nếu fail
     syncAllToDrive(accessToken, journals, journeys).catch(err => {
       console.error("Auto-sync failed for Pro user", err);
@@ -150,15 +151,15 @@ export const saveJournalWithSync = async (journal: JournalEntry, isPro: boolean 
 };
 
 export const updateJournal = async (journal: JournalEntry): Promise<void> => {
-    try {
-      let journals = await getJournals();
-      journals = journals.map(j => j.id === journal.id ? journal : j);
-      await AsyncStorage.setItem(JOURNALS_KEY, JSON.stringify(journals));
-    } catch (e) {
-      console.error("Error updating journal to storage", e);
-      throw e;
-    }
-  };
+  try {
+    let journals = await getJournals();
+    journals = journals.map(j => j.id === journal.id ? journal : j);
+    await AsyncStorage.setItem(JOURNALS_KEY, JSON.stringify(journals));
+  } catch (e) {
+    console.error("Error updating journal to storage", e);
+    throw e;
+  }
+};
 
 export const deleteJournal = async (id: string): Promise<void> => {
   try {
@@ -175,7 +176,26 @@ export const deleteAllData = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(JOURNEYS_KEY);
     await AsyncStorage.removeItem(JOURNALS_KEY);
-  } catch(e) {
+  } catch (e) {
     console.error("Error deleting data", e);
+  }
+};
+
+export const getDailyMoods = async (): Promise<Record<string, number>> => {
+  try {
+    const jsonValue = await AsyncStorage.getItem(DAILY_MOODS_KEY);
+    return jsonValue != null ? JSON.parse(jsonValue) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const saveDailyMood = async (dateStr: string, emotionId: number): Promise<void> => {
+  try {
+    const moods = await getDailyMoods();
+    moods[dateStr] = emotionId;
+    await AsyncStorage.setItem(DAILY_MOODS_KEY, JSON.stringify(moods));
+  } catch (e) {
+    console.error('Error saving daily mood', e);
   }
 };

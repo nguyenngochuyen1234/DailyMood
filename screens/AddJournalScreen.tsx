@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,9 @@ import {
   X,
   ChevronDown,
   Trash2,
+  Mic,
 } from "lucide-react-native";
+import Voice, { SpeechResultsEvent } from "@react-native-voice/voice";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -37,6 +39,8 @@ import {
 } from "../lib/storage";
 import { Journey } from "../types/models";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
+import { saveImageLocally } from "../lib/fileHelper";
+
 
 const { width } = Dimensions.get("window");
 
@@ -47,7 +51,7 @@ export default function AddJournalScreen({
   navigation: any;
   route?: any;
 }) {
-  const { journalId } = route?.params || {};
+  const { journalId, initialMoodId } = route?.params || {};
   const isEditing = !!journalId;
 
   const { backgrounds, colors } = useTheme();
@@ -61,13 +65,17 @@ export default function AddJournalScreen({
 
   // Khởi tạo mood mặc định khi emoji được tải xong
   React.useEffect(() => {
-    if (emojis.length > 0 && selectedMoodId === null && !isEditing) {
-      setSelectedMoodId(emojis[0].id);
+    if (emojis.length > 0 && !isEditing) {
+      if (initialMoodId) {
+        setSelectedMoodId(initialMoodId);
+        // Xóa tham số sau khi đã sử dụng để tránh bị áp dụng lại
+        navigation.setParams({ initialMoodId: undefined });
+      } else if (selectedMoodId === null) {
+        setSelectedMoodId(emojis[0].emotion_id);
+      }
     }
-  }, [emojis, isEditing]);
-  const [title, setTitle] = useState("");
+  }, [emojis, isEditing, initialMoodId, navigation]);
   const [description, setDescription] = useState("");
-  const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [originalTime, setOriginalTime] = useState<string | null>(null);
@@ -75,6 +83,60 @@ export default function AddJournalScreen({
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
   const [showJourneyPicker, setShowJourneyPicker] = useState(false);
+  const [isListeningDescription, setIsListeningDescription] = useState(false);
+  const activeListeningField = useRef<'title' | 'description' | null>(null);
+  const preSpeechContent = useRef<string>("");
+
+  const { language: appLanguage } = useMood();
+
+  React.useEffect(() => {
+    Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechError = (e) => {
+      console.error("Speech error: ", e);
+      setIsListeningDescription(false);
+      activeListeningField.current = null;
+    };
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  const onSpeechResults = (e: SpeechResultsEvent) => {
+    if (e.value && e.value.length > 0) {
+      const text = e.value[0];
+      if (activeListeningField.current === 'description') {
+        const newText = preSpeechContent.current + (preSpeechContent.current.length > 0 ? " " : "") + text;
+        setDescription(newText);
+      }
+    }
+  };
+
+  const toggleListening = async (field: 'description') => {
+    const isCurrentlyListening = isListeningDescription;
+
+    try {
+      if (isCurrentlyListening) {
+        await Voice.stop();
+        setIsListeningDescription(false);
+        activeListeningField.current = null;
+      } else {
+        // Stop any existing listening first
+        await Voice.stop();
+        setIsListeningDescription(false);
+
+        // Start listening with the correct language
+        const lang = appLanguage === 'vi' ? 'vi-VN' : 'en-US';
+        preSpeechContent.current = description;
+        await Voice.start(lang);
+        setIsListeningDescription(true);
+        activeListeningField.current = 'description';
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Lỗi", "Không thể sử dụng chức năng giọng nói.");
+    }
+  };
 
   React.useEffect(() => {
     const initData = async () => {
@@ -84,10 +146,17 @@ export default function AddJournalScreen({
         const dbJournals = await getJournals();
         const journalToEdit = dbJournals.find((j) => j.id === journalId);
         if (journalToEdit) {
-          setTitle(journalToEdit.title || "");
           setDescription(journalToEdit.description || "");
           setImages(journalToEdit.images || []);
-          setSelectedMoodId(Number(journalToEdit.typeEmoji));
+          
+          // Migration: Resolve old ID-based typeEmoji to emotion_id if possible
+          const storedEmojiVal = Number(journalToEdit.typeEmoji);
+          const foundEmoji = emojis.find(e => e.id === storedEmojiVal);
+          if (foundEmoji) {
+            setSelectedMoodId(foundEmoji.emotion_id);
+          } else {
+            setSelectedMoodId(storedEmojiVal);
+          }
           const foundJourney = data.find(
             (j) => j.id === journalToEdit.journeyId,
           );
@@ -108,6 +177,14 @@ export default function AddJournalScreen({
     hour12: true,
   });
 
+
+  const clearForm = () => {
+    setDescription("");
+    setImages([]);
+    setSelectedMoodId(emojis.length > 0 ? emojis[0].emotion_id : null);
+    setSelectedJourney(null);
+  };
+
   const handleSave = async () => {
     if (selectedMoodId === null) {
       Alert.alert("Lỗi", "Vui lòng chọn cảm xúc!");
@@ -119,13 +196,13 @@ export default function AddJournalScreen({
         typeEmoji: selectedMoodId,
         time: isEditing && originalTime ? originalTime : now.toISOString(),
         journeyId: selectedJourney?.id || null,
-        title: title.trim(),
         description: description.trim(),
         images: images,
       };
 
       if (isEditing) {
         await updateJournal(journalData);
+        clearForm();
         navigation.goBack();
       } else {
         // Sử dụng logic phân tầng dựa trên isPro
@@ -134,6 +211,7 @@ export default function AddJournalScreen({
         } else {
           await saveWithManualSync('journal', journalData);
         }
+        clearForm();
         navigation.goBack();
       }
     } catch (e) {
@@ -184,9 +262,13 @@ export default function AddJournalScreen({
       });
 
       if (!result.canceled) {
-        const selectedUris = result.assets.map(asset => asset.uri);
-        // Đảm bảo không vượt quá 3 ảnh (phòng trường hợp selectionLimit không hoạt động trên một số phiên bản)
-        const newImages = [...images, ...selectedUris].slice(0, 3);
+        // Lưu ảnh vào thư mục local vĩnh viễn
+        const localUris = await Promise.all(
+          result.assets.map(asset => saveImageLocally(asset.uri))
+        );
+
+        // Đảm bảo không vượt quá 3 ảnh
+        const newImages = [...images, ...localUris].slice(0, 3);
         setImages(newImages);
       }
     } catch (error) {
@@ -227,20 +309,6 @@ export default function AddJournalScreen({
                 })}
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              onPress={handleSave}
-              style={[styles.saveButton, { backgroundColor: colors.primary }]}
-            >
-              {React.createElement(Check as any, {
-                size: 20,
-                color: colors.text.textOnDark,
-              })}
-              <Text
-                style={[styles.saveText, { color: colors.text.textOnDark }]}
-              >
-                {isEditing ? "Update" : "Save"}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -322,87 +390,90 @@ export default function AddJournalScreen({
 
           {/* Input Fields */}
           <View style={styles.inputSection}>
-            <TextInput
-              style={[
-                styles.titleInput,
+            <View style={[styles.descriptionWrapper, {
+              backgroundColor: colors.backgroundCard,
+              borderWidth: 1,
+              borderColor: colors.border,
 
-                {
-                  color: colors.text.dark,
-                  borderBottomColor: isTitleFocused ? colors.primary : colors.border,
-                  flex: 1,
-                },
-              ]}
-              placeholder="Title (Optional)"
-              placeholderTextColor={colors.text.muted}
-              value={title}
-              onChangeText={setTitle}
-              onFocus={() => setIsTitleFocused(true)}
-              onBlur={() => setIsTitleFocused(false)}
-            />
-
-            <TextInput
-              style={[styles.descriptionInput, {
-                color: colors.text.dark, backgroundColor: colors.backgroundCard,
-                borderColor: isDescriptionFocused ? colors.primary : colors.border,
-              }]}
-              placeholder="Write about your day..."
-              placeholderTextColor={colors.text.muted}
-              multiline
-              textAlignVertical="top"
-              value={description}
-              onChangeText={setDescription}
-              onFocus={() => setIsDescriptionFocused(true)}
-              onBlur={() => setIsDescriptionFocused(false)}
-            />
+            }]}>
+              <TextInput
+                style={[styles.descriptionInput, { color: colors.text.dark, borderWidth: 2, borderColor: isDescriptionFocused ? colors.primary : colors.border }]}
+                placeholder="Write about your day..."
+                placeholderTextColor={colors.text.muted}
+                multiline
+                textAlignVertical="top"
+                value={description}
+                onChangeText={setDescription}
+                onFocus={() => setIsDescriptionFocused(true)}
+                onBlur={() => setIsDescriptionFocused(false)}
+              />
+              <View style={styles.micIconDescription}>
+                <TouchableOpacity onPress={handleAddPhoto} style={{ padding: 8 }}>
+                  {React.createElement(Camera as any, {
+                    size: 22,
+                    color: colors.text.muted,
+                  })}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => toggleListening('description')} style={{ padding: 8 }}>
+                  {React.createElement(Mic as any, {
+                    size: 22,
+                    color: isListeningDescription ? colors.error : colors.text.muted,
+                  })}
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
 
+
+
           {/* Add Photo Button */}
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: SIZES.spacing.xl }}>
+
+
+            {/* Photo Gallery Preview */}
+            {images.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.galleryContainer}
+              >
+                {images.map((img, index) => (
+                  <View key={index} style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: img }} style={styles.imagePreview} />
+                    <TouchableOpacity
+                      style={[
+                        styles.removeImageButton,
+                        {
+                          backgroundColor: colors.primary,
+                          borderColor: colors.background.white,
+                        },
+                      ]}
+                      onPress={() => removeImage(index)}
+                    >
+                      {React.createElement(X as any, {
+                        size: 12,
+                        color: colors.text.white,
+                      })}
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+
           <TouchableOpacity
-            style={[styles.addPhotoButton, { backgroundColor: colors.primary }]}
-            onPress={handleAddPhoto}
+            onPress={handleSave}
+            style={[styles.bottomSaveButton, { backgroundColor: colors.primary }]}
           >
-            {React.createElement(Camera as any, {
+            {React.createElement(Check as any, {
               size: 24,
               color: colors.text.textOnDark,
-              style: { marginRight: 8 },
             })}
-            <Text
-              style={[styles.buttonText, { color: colors.text.textOnDark }]}
-            >
-              Add Photo
+            <Text style={[styles.bottomSaveText, { color: colors.text.textOnDark }]}>
+              {isEditing ? "Update Journal" : "Save Journal"}
             </Text>
           </TouchableOpacity>
-
-          {/* Photo Gallery Preview */}
-          {images.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.galleryContainer}
-            >
-              {images.map((img, index) => (
-                <View key={index} style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: img }} style={styles.imagePreview} />
-                  <TouchableOpacity
-                    style={[
-                      styles.removeImageButton,
-                      {
-                        backgroundColor: colors.error,
-                        borderColor: colors.background.white,
-                      },
-                    ]}
-                    onPress={() => removeImage(index)}
-                  >
-                    {React.createElement(X as any, {
-                      size: 12,
-                      color: colors.text.white,
-                    })}
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-          )}
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -427,15 +498,24 @@ const styles = StyleSheet.create({
     paddingVertical: SIZES.spacing.s,
   },
   headerTitle: { fontFamily: FONTS.bold, fontSize: 22 },
-  saveButton: {
+  bottomSaveButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SIZES.spacing.m,
-    paddingVertical: 6,
+    justifyContent: "center",
+    paddingVertical: 16,
     borderRadius: SIZES.radius.xl,
-    gap: 4,
+    marginTop: SIZES.spacing.xl,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  saveText: { fontFamily: FONTS.bold, fontSize: 16 },
+  bottomSaveText: { 
+    fontFamily: FONTS.bold, 
+    fontSize: 18 
+  },
   scrollContent: {
     paddingHorizontal: SIZES.spacing.xl,
     paddingTop: SIZES.spacing.s,
@@ -456,7 +536,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: SIZES.spacing.xl,
     gap: SIZES.spacing.m,
-    borderBottomWidth: 1,
+
     paddingBottom: SIZES.spacing.m,
   },
   dateDisplay: {
@@ -474,13 +554,6 @@ const styles = StyleSheet.create({
   },
   dateTimeText: { fontFamily: FONTS.regular, fontSize: 18 },
   inputSection: { marginBottom: SIZES.spacing.xl },
-  titleInput: {
-    fontFamily: FONTS.bold,
-    fontSize: 20,
-    marginBottom: SIZES.spacing.m,
-    borderBottomWidth: 1,
-    paddingBottom: SIZES.spacing.s,
-  },
 
   descriptionInput: {
     fontFamily: FONTS.regular,
@@ -489,22 +562,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: SIZES.radius.xl,
     padding: SIZES.spacing.l,
-    borderWidth: 1,
+
     minHeight: 200,
 
-  },
-  addPhotoButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: SIZES.radius.xxl,
-    marginBottom: SIZES.spacing.xl,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   buttonText: { fontFamily: FONTS.bold, fontSize: 18 },
   galleryContainer: { marginBottom: SIZES.spacing.xl },
@@ -520,5 +580,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
+  },
+  descriptionWrapper: {
+    borderRadius: SIZES.radius.xl,
+    borderWidth: 1,
+    minHeight: 200,
+    position: 'relative',
+
+  },
+  micIconDescription: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    padding: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  smallIconButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

@@ -25,35 +25,38 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
   const [journeys, setJourneys] = React.useState<Journey[]>([]);
   const { colors, backgrounds } = useTheme();
 
-  React.useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", async () => {
-      const jData = await getJourneys();
-      const allJournals = await getJournals();
+  const fetchData = React.useCallback(async () => {
+    const jData = await getJourneys();
+    const allJournals = await getJournals();
 
-      const counts: { [key: string]: number } = {};
-      const lastImages: { [key: string]: string | null } = {};
+    const counts: { [key: string]: number } = {};
+    const lastImages: { [key: string]: string | null } = {};
 
-      allJournals
-        .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-        .forEach((j) => {
-          if (j.journeyId) {
-            counts[j.journeyId] = (counts[j.journeyId] || 0) + 1;
-            if (!lastImages[j.journeyId] && j.images && j.images.length > 0) {
-              lastImages[j.journeyId] = j.images[0];
-            }
+    allJournals
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .forEach((j) => {
+        if (j.journeyId) {
+          counts[j.journeyId] = (counts[j.journeyId] || 0) + 1;
+          if (!lastImages[j.journeyId] && j.images && j.images.length > 0) {
+            lastImages[j.journeyId] = j.images[0];
           }
-        });
+        }
+      });
 
-      setJourneys(
-        jData.map((j) => ({
-          ...j,
-          postCount: counts[j.id] || 0,
-          lastImage: lastImages[j.id] || null,
-        })),
-      );
-    });
+    setJourneys(
+      jData.map((j) => ({
+        ...j,
+        postCount: counts[j.id] || 0,
+        lastImage: lastImages[j.id] || null,
+      }))
+    );
+  }, []);
+
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", fetchData);
+    fetchData(); // Initial load
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, fetchData]);
 
   return (
     <ImageBackground
@@ -74,7 +77,7 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
           <View
             style={[
               styles.bannerOverlay,
-              { backgroundColor: colors.backgroundCard },
+              { backgroundColor: colors.backgroundCard, marginBottom: SIZES.spacing.xl },
             ]}
           >
             <Text style={[styles.bannerTitle, { color: colors.text.dark }]}>
@@ -91,7 +94,11 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
               key={item.id}
               style={[
                 styles.journeyCard,
-                { backgroundColor: colors.backgroundCard },
+                { 
+                  backgroundColor: colors.backgroundCard,
+                  borderColor: colors.border,
+                  shadowColor: colors.border,
+                },
               ]}
               onPress={() =>
                 navigation.navigate("JourneyDetail", { journey: item })
@@ -181,8 +188,7 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
             navigation={{ goBack: () => setShowCreateModal(false) }}
             onClose={async () => {
               setShowCreateModal(false);
-              const data = await getJourneys();
-              setJourneys(data);
+              await fetchData();
             }}
           />
         </Modal>
@@ -242,6 +248,11 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radius.xxl,
     padding: SIZES.spacing.l,
     marginBottom: SIZES.spacing.l,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: "row",

@@ -36,6 +36,7 @@ import { useMood } from "../context/MoodContext";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { backupToDrive, restoreFromDrive } from "../lib/googleDriveService";
 import { manualSyncAll } from "../lib/storage";
+import { useSecurity } from "../context/SecurityContext";
 const { width } = Dimensions.get("window");
 
 // Removed static THEME_PREVIEWS as they are now fetched from Supabase via ThemeContext
@@ -75,10 +76,10 @@ function SettingItem({
         <View
           style={[
             settingStyles.iconCircle,
-            { backgroundColor: `${primaryColor}1A` },
+            { backgroundColor: `${colors.secondary}1A` },
           ]}
         >
-          {React.createElement(icon as any, { size: 20, color: primaryColor })}
+          {React.createElement(icon as any, { size: 20, color: colors.secondary })}
         </View>
         <Text style={[settingStyles.itemLabel, { color: colors.text.dark }]}>
           {label}
@@ -108,11 +109,74 @@ export default function SettingScreen({ navigation }: any) {
   const { colors, backgrounds, availableThemes, changeTheme, selectedThemeId } =
     useTheme();
   const { t, language, setLanguage } = useMood();
+  const { isEnabled, disablePinCode } = useSecurity();
   const [notifications, setNotifications] = useState(true);
   // Google Drive Sync
   const { userInfo, accessToken, promptAsync, logout } = useGoogleAuth();
   const [syncLoading, setSyncLoading] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+
+  const handleLockPress = () => {
+    if (!isEnabled) {
+      navigation.navigate("SecurityPin", {
+        mode: "set",
+        onSuccess: (pin: string) => {
+          navigation.navigate("SecurityPin", {
+            mode: "confirm",
+            initialPin: pin,
+            onSuccess: () => {
+              navigation.navigate("Setting");
+              Alert.alert(t("success") || "Thành công", t("set_pin_success") || "Đã thiết lập mã PIN thành công!");
+            },
+            onCancel: () => navigation.navigate("Setting")
+          });
+        },
+        onCancel: () => navigation.navigate("Setting")
+      });
+    } else {
+      Alert.alert(
+        t("lock_app"),
+        t("lock_app_options") || "Bạn muốn làm gì với khóa ứng dụng?",
+        [
+          { text: t("cancel"), style: "cancel" },
+          {
+            text: t("disable_pin"),
+            style: "destructive",
+            onPress: () => {
+              Alert.alert(
+                t("disable_pin"),
+                t("disable_pin_confirm") || "Bạn có chắc muốn tắt khóa ứng dụng không?",
+                [
+                  { text: t("cancel"), style: "cancel" },
+                  { text: t("confirm") || "Xác nhận", onPress: () => disablePinCode() }
+                ]
+              );
+            }
+          },
+          {
+            text: t("change_pin"),
+            onPress: () => {
+              navigation.navigate("SecurityPin", {
+                mode: "set",
+                onSuccess: (pin: string) => {
+                  navigation.navigate("SecurityPin", {
+                    mode: "confirm",
+                    initialPin: pin,
+                    onSuccess: () => {
+                      navigation.navigate("Setting");
+                      Alert.alert(t("success") || "Thành công", t("change_pin_success") || "Đã thay đổi mã PIN thành công!");
+                    },
+                    onCancel: () => navigation.navigate("Setting")
+                  });
+                },
+                onCancel: () => navigation.navigate("Setting")
+              });
+            }
+          }
+        ]
+      );
+    }
+  };
 
   const toggleLanguage = () => {
     const nextLang = language === "vi" ? "en" : "vi";
@@ -301,6 +365,7 @@ export default function SettingScreen({ navigation }: any) {
                       { backgroundColor: "#fff" },
                       selectedThemeId === theme.id && {
                         borderColor: colors.primary,
+                        borderWidth: 2,
                       },
                     ]}
                     onPress={() => handleThemeChange(theme.id)}
@@ -390,7 +455,9 @@ export default function SettingScreen({ navigation }: any) {
               icon={Lock}
               colors={colors}
               label={t("lock_app")}
+              value={isEnabled ? (language === "vi" ? "Đang bật" : "Enabled") : (language === "vi" ? "Đã tắt" : "Disabled")}
               primaryColor={colors.primary}
+              onPress={handleLockPress}
             />
           </View>
 
@@ -681,13 +748,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 6,
     overflow: "hidden",
-    borderWidth: 2,
+
     borderColor: "transparent",
   },
   themeTopBar: { height: 24 },
   themeContent: {
     flex: 1,
-    padding: 8,
+
     gap: 6,
     justifyContent: "center",
   },

@@ -9,7 +9,6 @@ export interface JournalEntry {
   typeEmoji: number | string;
   time: string; // Định dạng ISO ngày tháng năm - giờ phút
   journeyId: string | null; // ID hành trình (trống nếu không chọn)
-  title: string;
   description: string;
   images: string[]; // Chứa URI đường dẫn ảnh (Tối đa 3 ảnh)
 }

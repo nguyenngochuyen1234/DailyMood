@@ -11,7 +11,14 @@ const PostCard = ({ item }: { item: any }) => {
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      style={[styles.postCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}
+      style={[
+        styles.postCard, 
+        { 
+          backgroundColor: colors.backgroundCard, 
+          borderColor: colors.border,
+          shadowColor: colors.border,
+        }
+      ]}
       onPress={() => navigation.navigate("EditEntry", { journalId: item.id })}
     >
       <View style={styles.postHeader}>
@@ -41,6 +48,10 @@ const styles = StyleSheet.create({
     padding: SIZES.spacing.xl,
     marginBottom: SIZES.spacing.xl,
     borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   postHeader: {
     flexDirection: 'row',

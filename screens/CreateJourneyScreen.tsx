@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, 
-  TextInput, KeyboardAvoidingView, Platform, 
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  TextInput, KeyboardAvoidingView, Platform,
   ScrollView, ImageBackground, Alert
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -12,7 +12,7 @@ import { saveJourney, updateJourney } from '../lib/storage';
 export default function CreateJourneyScreen({ navigation, route, onClose }: { navigation?: any; route?: any; onClose?: () => void }) {
   const { journey } = route?.params || {};
   const isEditing = !!journey;
-  
+
   const { colors, backgrounds } = useTheme();
   const [title, setTitle] = useState(journey?.name || '');
   const [description, setDescription] = useState(journey?.description || '');
@@ -22,7 +22,7 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
       Alert.alert('Lỗi', 'Vui lòng nhập tên hành trình!');
       return;
     }
-    
+
     try {
       if (isEditing) {
         await updateJourney({
@@ -41,18 +41,18 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
         if (onClose) onClose();
         else if (navigation) navigation.goBack();
       }
-    } catch(e) {
+    } catch (e) {
       Alert.alert('Lỗi', `Không thể ${isEditing ? 'cập nhật' : 'tạo'} hành trình`);
     }
   };
 
   return (
-    <ImageBackground 
-      source={backgrounds.detail} 
+    <ImageBackground
+      source={backgrounds.detail}
       style={[styles.container, { backgroundColor: colors.background.main }]}
     >
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.flex}
         >
@@ -63,7 +63,7 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
               </Text>
               <Text style={[styles.subtitle, { color: colors.text.dark }]}>
                 {isEditing ? "Điều chỉnh mục tiêu và thông tin cho hành trình này." : "Thiết lập mục tiêu và bắt đầu ghi lại những khoảnh khắc đáng nhớ."}
-              </Text>
+              </Text>D
             </View>
 
             <View style={styles.inputSection}>
@@ -91,7 +91,7 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
             </View>
 
             <View style={styles.footer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.createButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
                 onPress={handleCreate}
               >
@@ -100,7 +100,7 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
                   if (onClose) onClose();

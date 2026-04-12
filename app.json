@@ -15,7 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.huyen.dailymood"
+      "bundleIdentifier": "com.huyen.dailymood",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Cho phép DailyMood sử dụng nhận dạng giọng nói để chuyển lời nói của bạn thành nội dung nhật ký.",
+        "NSMicrophoneUsageDescription": "Cho phép DailyMood sử dụng micro để ghi âm giọng nói của bạn."
+      }
     },
     "android": {
       "package": "com.huyen.dailymood",
@@ -24,7 +28,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -54,7 +54,14 @@ export default function ThemeListScreen({ navigation }: any) {
               return (
                 <TouchableOpacity
                   key={theme.id}
-                  style={[styles.themeCard, { backgroundColor: cardColor }]}
+                  style={[
+                    styles.themeCard, 
+                    { 
+                      backgroundColor: cardColor, 
+                      borderColor: colors.border,
+                      shadowColor: colors.border
+                    }
+                  ]}
                   onPress={() => handleThemeChange(theme.id)}
                 >
                   <View
@@ -137,8 +144,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "transparent",
     marginBottom: SIZES.spacing.xs,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   themeTopBar: { height: 24 },
   themeContent: {

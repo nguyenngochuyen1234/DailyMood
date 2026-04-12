@@ -50,7 +50,7 @@ export default function MoodDetailScreen({
     const fetchData = async () => {
       const all = await getJournals();
       const filtered = all.filter(j => Number(j.typeEmoji) === moodId);
-      setJournals(filtered.sort((a,b) => new Date(b.time).getTime() - new Date(a.time).getTime()));
+      setJournals(filtered.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()));
     };
     fetchData();
   }, [moodId]);
@@ -65,9 +65,9 @@ export default function MoodDetailScreen({
     journals.forEach(j => {
       const d = new Date(j.time);
       if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-         const week = Math.floor((d.getDate() - 1) / 7);
-         if (week < 4) counts[week]++;
-         else counts[3]++;
+        const week = Math.floor((d.getDate() - 1) / 7);
+        if (week < 4) counts[week]++;
+        else counts[3]++;
       }
     });
 
@@ -88,19 +88,28 @@ export default function MoodDetailScreen({
   // Real data for Calendar
   const calendarData = useMemo(() => {
     const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysInMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    ).getDate();
+    const moodIndexInEmojis = emojis.findIndex((e) => e.id === mood.id);
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      const hasThisMood = journals.some(j => {
+      const hasThisMood = journals.some((j) => {
         const d = new Date(j.time);
-        return d.getDate() === day && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        return (
+          d.getDate() === day &&
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
       });
       return {
         day,
-        moodIndex: hasThisMood ? mood.id : -1,
+        moodIndex: hasThisMood ? moodIndexInEmojis : -1,
       };
     });
-  }, [journals, mood.id]);
+  }, [journals, mood.id, emojis]);
 
   // Real List of Posts for this mood
   const moodPosts = useMemo(() => {
@@ -136,7 +145,7 @@ export default function MoodDetailScreen({
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {/* Mood Summary */}
-          <View style={[styles.summaryCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
+          <View style={[styles.summaryCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border, shadowColor: colors.border }]}>
             <Image source={{ uri: mood.image }} style={styles.largeIcon} />
             <Text style={[styles.moodName, { color: colors.text.dark }]}>{mood.emotion_name}</Text>
             <Text style={[styles.quoteText, { color: colors.text.muted }]}>"{quote}"</Text>
@@ -145,18 +154,18 @@ export default function MoodDetailScreen({
           {/* Line Chart */}
           <View style={styles.sectionContainer}>
             <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>{language === 'vi' ? 'Tần suất trong tháng' : 'Monthly Frequency'}</Text>
-            <View style={[styles.chartContainer, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
+            <View style={[styles.chartContainer, { backgroundColor: colors.backgroundCard, borderColor: colors.border, shadowColor: colors.border }]}>
               <LineChart
                 data={lineChartData}
                 width={width - 50}
                 height={220}
                 yAxisSuffix=""
-                yAxisInterval={1} 
+                yAxisInterval={1}
                 chartConfig={{
                   backgroundColor: "transparent",
-                  backgroundGradientFrom: colors.background.overlay,
-                  backgroundGradientTo: colors.background.overlay,
-                  decimalPlaces: 0, 
+                  backgroundGradientFrom: colors.backgroundCard,
+                  backgroundGradientTo: colors.backgroundCard,
+                  decimalPlaces: 0,
                   color: (opacity = 1) => colors.text.dark,
                   labelColor: (opacity = 1) => colors.text.muted,
                   style: {
@@ -181,7 +190,7 @@ export default function MoodDetailScreen({
           <View style={styles.sectionContainer}>
             <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>Ngày mang cảm xúc {(mood.emotion_name || '').toLowerCase()}</Text>
             <CalendarGrid
-              calendarData={calendarData} 
+              calendarData={calendarData}
               displayMode="icon"
             />
           </View>
@@ -190,11 +199,11 @@ export default function MoodDetailScreen({
           <View style={styles.sectionContainer}>
             <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>{language === 'vi' ? 'Nhật ký liên quan' : 'Related Logs'}</Text>
             {moodPosts.length === 0 ? (
-               <EmptyState 
-                 title="Chưa có nhật ký"
-                 description={`Bạn chưa có bài viết nào gắn cảm xúc ${(mood.emotion_name || '').toLowerCase()}.`}
-                 onPress={() => navigation.navigate("Add")}
-               />
+              <EmptyState
+                title="Chưa có nhật ký"
+                description={`Bạn chưa có bài viết nào gắn cảm xúc ${(mood.emotion_name || '').toLowerCase()}.`}
+                onPress={() => navigation.navigate("Add")}
+              />
             ) : (
               moodPosts.map(post => (
                 <PostCard key={post.id} item={post} />
@@ -240,6 +249,10 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radius.xxxl,
     borderWidth: 1,
     marginBottom: SIZES.spacing.xxl,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   largeIcon: {
     width: 100,
@@ -272,5 +285,9 @@ const styles = StyleSheet.create({
     paddingVertical: SIZES.spacing.l,
     alignItems: "center",
     borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
 });

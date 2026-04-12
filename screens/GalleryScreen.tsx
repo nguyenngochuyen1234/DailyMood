@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,44 +15,103 @@ import { FONTS, SIZES } from "../constants/theme";
 import { ChevronLeft } from "lucide-react-native";
 import { useMood } from "../context/MoodContext";
 import MoodIcon from "../components/MoodIcon";
-// import { MOOD_ICONS } from "../constants/moods"; // Không dùng nữa
+import { getJournals } from "../lib/storage";
+import EmptyState from "../components/EmptyState";
 
 const { width } = Dimensions.get("window");
-// 3 columns layout
 const numColumns = 3;
 const itemMargin = 2;
-const itemWidth = (width - SIZES.spacing.xl * 2 - itemMargin * (numColumns * 2)) / numColumns;
+const itemWidth =
+  (width - SIZES.spacing.xl * 2 - itemMargin * (numColumns * 2)) / numColumns;
 
-// MOCK_GALLERY sẽ được dùng bên trong component để lấy dữ liệu động
+interface GalleryItem {
+  id: string; // Combination of journalId and imageIndex
+  journalId: string;
+  image: string;
+  moodId: number | string;
+  date: Date;
+}
 
 export default function GalleryScreen({ navigation }: { navigation: any }) {
   const { colors, backgrounds } = useTheme();
-  const { emojis, loading } = useMood();
+  const { emojis, loading: moodLoading, t } = useMood();
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const MOCK_GALLERY = React.useMemo(() => [
-    { id: "1", date: "2 Jun", moodIdx: 0, image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&q=60" },
-    { id: "2", date: "7 Jun", moodIdx: 1, image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=500&q=60" },
-    { id: "3", date: "14 Jun", moodIdx: 4, image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=60" },
-    { id: "4", date: "15 Jun", moodIdx: 3, image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&q=60" },
-    { id: "5", date: "20 Jun", moodIdx: 2, image: "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&q=60" },
-    { id: "6", date: "22 Jun", moodIdx: 0, image: "https://images.unsplash.com/photo-1505144808419-1957a94ca61e?w=500&q=60" },
-    { id: "7", date: "25 Jun", moodIdx: 1, image: "https://images.unsplash.com/photo-1473496169904-658bba4f3d1e?w=500&q=60" },
-    { id: "8", date: "28 Jun", moodIdx: 4, image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=60" },
-    { id: "9", date: "1 Jul", moodIdx: 0, image: "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=500&q=60" },
-    { id: "10", date: "3 Jul", moodIdx: 2, image: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=500&q=60" },
-  ], [emojis]);
+  const fetchGalleryData = async () => {
+    try {
+      setLoading(true);
+      const allJournals = await getJournals();
+      const items: GalleryItem[] = [];
 
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.gridItem}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.overlayInfo}>
-         <MoodIcon index={item.moodIdx} size={34} style={styles.miniMoodIcon} />
-      </View>
-    </TouchableOpacity>
-  );
+      allJournals.forEach((journal) => {
+        if (journal.images && journal.images.length > 0) {
+          journal.images.forEach((img, index) => {
+            items.push({
+              id: `${journal.id}-${index}`,
+              journalId: journal.id,
+              image: img,
+              moodId: journal.typeEmoji,
+              date: new Date(journal.time),
+            });
+          });
+        }
+      });
+
+      // Sort by date descending
+      setGalleryItems(items.sort((a, b) => b.date.getTime() - a.date.getTime()));
+    } catch (error) {
+      console.error("Error fetching gallery data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchGalleryData();
+    });
+    fetchGalleryData();
+    return unsubscribe;
+  }, [navigation]);
+
+  const handleItemPress = (item: GalleryItem) => {
+    navigation.navigate("MoodDetail", { moodId: item.moodId });
+    // Or navigate to DayDetail if preferred. User plan said DayDetail.
+    // Let's use DayDetail as per plan.
+    const d = item.date;
+    navigation.navigate("MainTabs", {
+      screen: "Stats", // DayDetail is usually reached via Stats or specific date
+    });
+    // Wait, let's navigate to DayDetailScreen directly since it's in RootStack.
+    navigation.navigate("DayDetail", {
+      day: d.getDate(),
+      month: d.getMonth(),
+      year: d.getFullYear(),
+    });
+  };
+
+  const renderItem = ({ item }: { item: GalleryItem }) => {
+    const moodIdx = emojis.findIndex((e) => e.id === item.moodId);
+
+    return (
+      <TouchableOpacity
+        style={styles.gridItem}
+        onPress={() => handleItemPress(item)}
+      >
+        <Image source={{ uri: item.image }} style={styles.image} />
+        <View style={styles.overlayInfo}>
+          <MoodIcon index={moodIdx} size={20} style={styles.miniMoodIcon} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <ImageBackground source={backgrounds.home} style={[styles.container, { backgroundColor: colors.background.main }]}>
+    <ImageBackground
+      source={backgrounds.home}
+      style={[styles.container, { backgroundColor: colors.background.main }]}
+    >
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
@@ -62,18 +121,34 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
           >
             <ChevronLeft size={28} color={colors.text.dark} />
           </TouchableOpacity>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>Bộ sưu tập</Text>
+          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>
+            {t("images") || "Bộ sưu tập"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
 
-        <FlatList
-          data={MOCK_GALLERY}
-          keyExtractor={(item) => item.id}
-          numColumns={numColumns}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          renderItem={renderItem}
-        />
+        {loading || moodLoading ? (
+          <View style={styles.centerContainer}>
+            <Text style={{ color: colors.text.muted }}>Đang tải...</Text>
+          </View>
+        ) : galleryItems.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <EmptyState
+              title="Chưa có hình ảnh"
+              description="Hãy viết nhật ký và kèm thêm hình ảnh để xây dựng bộ sưu tập của riêng bạn."
+              onPress={() => navigation.navigate("Add")}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={galleryItems}
+            keyExtractor={(item) => item.id}
+            numColumns={numColumns}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            renderItem={renderItem}
+          />
+        )}
       </SafeAreaView>
     </ImageBackground>
   );
@@ -121,13 +196,22 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 12,
-    padding: 1,
-    justifyContent:"center",
-    alignItems:"center",
+    padding: 2,
+    justifyContent: "center",
+    alignItems: "center",
   },
   miniMoodIcon: {
     width: 20,
     height: 20,
-    resizeMode: "contain",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    paddingHorizontal: SIZES.spacing.xl,
+    justifyContent: "center",
   },
 });

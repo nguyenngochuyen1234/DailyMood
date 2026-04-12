@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, 
-  ScrollView, Image, Dimensions, ImageBackground 
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Image, Dimensions, ImageBackground
 } from 'react-native';
-import { 
-  ArrowLeft, ChevronLeft, ChevronRight 
+import {
+  ArrowLeft, ChevronLeft, ChevronRight
 } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G } from 'react-native-svg';
 import { FONTS, SIZES } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
@@ -16,16 +16,18 @@ import EmptyState from '../components/EmptyState';
 import { getJournals } from '../lib/storage';
 import { JournalEntry } from '../types/models';
 import MonthSelector from '../components/MonthSelector';
+import RepresentativeMoodCard from '../components/RepresentativeMoodCard';
 
 const { width } = Dimensions.get('window');
 
 const MOOD_LABELS = ['Rất vui', 'Hạnh phúc', 'Bình thường', 'Buồn', 'Tức giận'];
 
 export default function DayDetailScreen({ navigation, route }: { navigation: any, route: any }) {
+  const insets = useSafeAreaInsets();
   const { colors, backgrounds } = useTheme();
   const { emojis, t } = useMood();
   const [selectedDate, setSelectedDate] = React.useState(
-    route.params?.day && route.params?.month !== undefined && route.params?.year 
+    route.params?.day && route.params?.month !== undefined && route.params?.year
       ? new Date(route.params.year, route.params.month, route.params.day)
       : new Date()
   );
@@ -37,10 +39,10 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
       const filtered = all.filter(j => {
         const d = new Date(j.time);
         return d.getDate() === selectedDate.getDate() &&
-               d.getMonth() === selectedDate.getMonth() &&
-               d.getFullYear() === selectedDate.getFullYear();
+          d.getMonth() === selectedDate.getMonth() &&
+          d.getFullYear() === selectedDate.getFullYear();
       });
-      setJournals(filtered.sort((a,b) => new Date(a.time).getTime() - new Date(b.time).getTime()));
+      setJournals(filtered.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()));
     };
     fetchDayJournals();
   }, [selectedDate]);
@@ -49,10 +51,10 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
   // Calculate pieData based on real logs
   const pieData = React.useMemo(() => {
     if (emojis.length === 0 || journals.length === 0) return [];
-    
+
     const counts = new Array(emojis.length).fill(0);
     journals.forEach(j => {
-      const idx = emojis.findIndex(e => e.id === j.typeEmoji);
+      const idx = emojis.findIndex(e => e.emotion_id === Number(j.typeEmoji) || e.id === Number(j.typeEmoji));
       if (idx >= 0) counts[idx]++;
     });
 
@@ -75,7 +77,7 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
     if (pieData.length === 0) {
       return (
         <View style={[styles.pieContainer, { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.background.soft, justifyContent: 'center', alignItems: 'center' }]}>
-           <Text style={{ fontSize: 10, color: colors.text.muted }}>No data</Text>
+          <Text style={{ fontSize: 10, color: colors.text.muted }}>No data</Text>
         </View>
       );
     }
@@ -112,7 +114,7 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
             })}
           </G>
           <View style={styles.chartOverlay}>
-             <Text style={[styles.totalLabel, { color: colors.text.dark }]}>Daily Mix</Text>
+            <Text style={[styles.totalLabel, { color: colors.text.dark }]}>Daily Mix</Text>
           </View>
         </Svg>
       </View>
@@ -120,11 +122,11 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
   };
 
   return (
-    <ImageBackground 
-      source={backgrounds.detail} 
+    <ImageBackground
+      source={backgrounds.detail}
       style={styles.container}
     >
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -141,25 +143,35 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
               currentDate={selectedDate}
               showDay={true}
               onChangeMonth={changeDay}
-              onCalendarPress={() => {}} // Could open a full calendar modal
+              onCalendarPress={() => { }} // Could open a full calendar modal
             />
           </View>
+
+          <RepresentativeMoodCard
+            journals={journals}
+            emojis={emojis}
+            date={selectedDate}
+          />
+
           <View style={styles.timelineSection}>
             {journals.length === 0 ? (
-              <EmptyState 
-                onPress={() => navigation.navigate("AddJournal")} 
+              <EmptyState
+                onPress={() => {
+                  navigation.goBack();
+                  navigation.navigate("AddJournal");
+                }}
               />
             ) : (
               journals.map((item, index) => {
                 const d = new Date(item.time);
                 const tStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                const moodIdx = emojis.findIndex(e => e.id === item.typeEmoji);
-                
+                const moodIdx = emojis.findIndex(e => e.emotion_id === Number(item.typeEmoji) || e.id === Number(item.typeEmoji));
+
                 return (
                   <View key={item.id} style={styles.timelineItem}>
                     {/* Time Display */}
                     <View style={styles.timeContainer}>
-                        <Text style={[styles.timeText, { color: colors.text.dark }]}>{tStr}</Text>
+                      <Text style={[styles.timeText, { color: colors.text.dark }]}>{tStr}</Text>
                     </View>
 
                     {/* Vertical Connector and Icon (Left Side) */}
@@ -169,7 +181,7 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
 
                     {/* Label (Right Side) */}
                     <View style={styles.labelContainer}>
-                        <Text style={[styles.moodLabel, { color: colors.text.dark }]}>{item.description || item.title || "No description"}</Text>
+                      <Text style={[styles.moodLabel, { color: colors.text.dark }]}>{item.description || "No description"}</Text>
                     </View>
                   </View>
                 );
@@ -178,25 +190,25 @@ export default function DayDetailScreen({ navigation, route }: { navigation: any
           </View>
 
           {/* Mood Mix Section */}
-{journals.length > 0 &&          <View style={styles.moodMixSection}>
-             <Text style={[styles.sectionTitle, { color: colors.secondary }]}>{t('daily_stats')}</Text>
-             <View style={[styles.chartWrapper, { backgroundColor: colors.backgroundCard }]}>
-                {renderPieChart()}
-                <View style={styles.legendContainer}>
-                    {pieData.map((item, index) => (
-                        <View key={index} style={styles.legendRow}>
-                            <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                            <Text style={[styles.legendText, { color: colors.text.dark }]}>{item.label}</Text>
-                            <Text style={[styles.legendPercent, { color: colors.text.dark }]}>{item.percentage}%</Text>
-                        </View>
-                    ))}
-                </View>
-             </View>
+          {journals.length > 0 && <View style={styles.moodMixSection}>
+            <Text style={[styles.sectionTitle, { color: colors.secondary }]}>{t('daily_stats')}</Text>
+            <View style={[styles.chartWrapper, { backgroundColor: colors.backgroundCard }]}>
+              {renderPieChart()}
+              <View style={styles.legendContainer}>
+                {pieData.map((item, index) => (
+                  <View key={index} style={styles.legendRow}>
+                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                    <Text style={[styles.legendText, { color: colors.text.dark }]}>{item.label}</Text>
+                    <Text style={[styles.legendPercent, { color: colors.text.dark }]}>{item.percentage}%</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>}
 
           <View style={{ height: 40 }} />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   );
 }

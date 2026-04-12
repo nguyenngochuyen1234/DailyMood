@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
+  LayoutChangeEvent,
 } from "react-native";
 import { FONTS, SIZES } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
@@ -15,6 +16,7 @@ import { useTheme } from "../context/ThemeContext";
 interface Emoji {
   id: number;
   image: string;
+  emotion_id: number;
   emotion_name: string;
 }
 
@@ -27,6 +29,9 @@ interface MoodSelectorProps {
   horizontal?: boolean;
 }
 
+const ITEM_WIDTH = 100;
+const GAP = SIZES.spacing.m;
+
 export default function MoodSelector({
   emojis,
   loading,
@@ -35,7 +40,24 @@ export default function MoodSelector({
   containerStyle,
   horizontal = true,
 }: MoodSelectorProps) {
-  const { colors, backgrounds } = useTheme();
+  const { colors } = useTheme();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (horizontal && selectedMoodId !== null && emojis.length > 0 && containerWidth > 0) {
+      const index = emojis.findIndex((e) => e.emotion_id === selectedMoodId);
+      if (index !== -1) {
+        const offset = (index * (ITEM_WIDTH + GAP)) - (containerWidth / 2) + (ITEM_WIDTH / 2);
+        scrollViewRef.current?.scrollTo({ x: Math.max(0, offset), animated: true });
+      }
+    }
+  }, [selectedMoodId, emojis, containerWidth, horizontal]);
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  };
+
   const renderMoodItems = () => {
     if (loading) {
       return <ActivityIndicator color="#506F3F" style={{ padding: 20 }} />;
@@ -43,11 +65,11 @@ export default function MoodSelector({
 
     return emojis.map((emoji) => (
       <TouchableOpacity
-        key={emoji.id}
-        onPress={() => onMoodChange(emoji.id)}
+        key={emoji.emotion_id}
+        onPress={() => onMoodChange(emoji.emotion_id)}
         style={[
           styles.moodItem,
-          selectedMoodId === emoji.id && [
+          selectedMoodId === emoji.emotion_id && [
             styles.moodItemSelected,
             { borderColor: colors.primary },
           ],
@@ -58,7 +80,7 @@ export default function MoodSelector({
           style={[
             styles.moodLabel,
             { color: colors.primary },
-            selectedMoodId === emoji.id && { color: colors.primary },
+            selectedMoodId === emoji.emotion_id && { color: colors.primary },
           ]}
         >
           {emoji.emotion_name || "Đang tải..."}
@@ -70,6 +92,8 @@ export default function MoodSelector({
   if (horizontal) {
     return (
       <ScrollView
+        ref={scrollViewRef}
+        onLayout={onLayout}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.moodContainer, containerStyle]}
@@ -107,7 +131,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     paddingVertical: SIZES.spacing.s,
-    minWidth: 100,
+    width: ITEM_WIDTH,
   },
   moodItemSelected: {
     backgroundColor: "#ffffff",

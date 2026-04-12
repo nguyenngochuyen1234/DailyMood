@@ -56,13 +56,14 @@ export default function StatsScreen({ navigation }: any) {
       const dateStr = `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
 
       if (!grouped[dateStr]) grouped[dateStr] = [];
-      const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
+      const emojiObj = emojis.find((e) => e.emotion_id === Number(j.typeEmoji)) ||
+        emojis.find((e) => e.id === Number(j.typeEmoji));
 
       grouped[dateStr].push({
         id: j.id,
         time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
         moodIcon: emojiObj ? { uri: emojiObj.image } : null,
-        text: j.description || j.title,
+        text: j.description,
         image: j.images?.length ? j.images[0] : null,
         timestamp: d.getTime(),
       });
@@ -95,7 +96,8 @@ export default function StatsScreen({ navigation }: any) {
     journals.forEach((j) => {
       if (j.images && j.images.length > 0) {
         const d = new Date(j.time);
-        const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
+        const emojiObj = emojis.find((e) => e.emotion_id === Number(j.typeEmoji)) ||
+          emojis.find((e) => e.id === Number(j.typeEmoji));
         imagesArray.push({
           id: j.id,
           date: `${d.getDate()} ${d.toLocaleString("default", { month: "short" })}`,
@@ -122,7 +124,7 @@ export default function StatsScreen({ navigation }: any) {
       });
       return {
         day,
-        moodIndex: jForDay ? emojis.findIndex((e) => e.id === jForDay.typeEmoji) : -1,
+        moodIndex: jForDay ? emojis.findIndex((e) => e.emotion_id === Number(jForDay.typeEmoji) || e.id === Number(jForDay.typeEmoji)) : -1,
       };
     });
   }, [currentDate, journals, emojis]);
@@ -133,7 +135,7 @@ export default function StatsScreen({ navigation }: any) {
     journals.forEach((item) => {
       const d = new Date(item.time);
       if (d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear()) {
-        const idx = emojis.findIndex((e) => e.id === item.typeEmoji);
+        const idx = emojis.findIndex((e) => e.emotion_id === Number(item.typeEmoji) || e.id === Number(item.typeEmoji));
         if (idx >= 0) counts[idx]++;
       }
     });
@@ -302,7 +304,7 @@ export default function StatsScreen({ navigation }: any) {
 
         <Modal visible={isDetailVisible} animationType="slide" onRequestClose={() => setIsDetailVisible(false)}>
           <DayDetailScreen
-            navigation={{ goBack: () => setIsDetailVisible(false) }}
+            navigation={{ ...navigation, goBack: () => setIsDetailVisible(false) }}
             route={{
               params: {
                 day: selectedDay,

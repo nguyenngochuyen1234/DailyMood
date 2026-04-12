@@ -82,7 +82,14 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
           return (
             <TouchableOpacity 
               key={index} 
-              style={[styles.card, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}
+              style={[
+                styles.card, 
+                { 
+                  backgroundColor: colors.backgroundCard, 
+                  borderColor: colors.border,
+                  shadowColor: colors.border,
+                }
+              ]}
               onPress={() => navigation.navigate("MoodDetail", { moodId: emoji.id })}
               activeOpacity={0.8}
             >
@@ -157,6 +164,11 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radius.xxxl,
     padding: SIZES.spacing.l,
     marginBottom: SIZES.spacing.m,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: "row",

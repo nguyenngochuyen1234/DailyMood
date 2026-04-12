@@ -37,14 +37,22 @@ export default function AllMoodsScreen({ navigation }: any) {
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {types.map((set) => (
-            <View key={set.id} style={[styles.setCard, { backgroundColor: colors.backgroundCard, borderWidth: selectedTypeId === set.id ? 2 : 1, borderColor: selectedTypeId === set.id ? colors.primary : colors.border }]}>
+            <View key={set.id} style={[
+              styles.setCard, 
+              { 
+                backgroundColor: colors.backgroundCard, 
+                borderWidth: selectedTypeId === set.id ? 2 : 1, 
+                borderColor: selectedTypeId === set.id ? colors.primary : colors.border,
+                shadowColor: colors.border
+              }
+            ]}>
               <View style={styles.setHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.setName, { color: colors.text.dark }]}>{set.name[language] || set.name['en']}</Text>
                   <Text style={[styles.setDesc, { color: colors.text.muted }]}>{set.description?.[language] || set.description?.['en']}</Text>
                 </View>
                 <TouchableOpacity 
-                  style={[styles.selectBtn, { backgroundColor: selectedTypeId === set.id ? colors.text.muted : colors.primary }]} 
+                   style={[styles.selectBtn, { backgroundColor: selectedTypeId === set.id ? colors.text.muted : colors.primary }]} 
                   onPress={() => {
                     setSelectedTypeId(set.id);
                     navigation.goBack();
@@ -89,6 +97,10 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: SIZES.spacing.l,
     borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   setHeader: {
     flexDirection: 'row',

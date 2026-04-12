@@ -5,10 +5,10 @@ export const translations = {
     stats: "Thống kê",
     journeys: "Hành trình",
     settings: "Cài đặt",
-    
+
     // Home
     home_title: "Hôm nay bạn cảm thấy như thế nào?",
-    
+
     // Stats
     stats_title: "Thống kê cảm xúc",
     daily_stats: "Chi tiết ngày",
@@ -16,20 +16,20 @@ export const translations = {
     no_data: "Không có dữ liệu",
     mood: "Cảm xúc",
     images: "Hình ảnh",
-    
+
     // Mood Names (Fallback)
     very_happy: "Rất vui",
     happy: "Hạnh phúc",
     neutral: "Bình thường",
     sad: "Buồn",
     angry: "Tức giận",
-    
+
     // Empty State
     empty_title: "Bạn chưa có nhật ký nào",
     empty_desc: "Hãy viết những dòng đầu tiên để lưu giữ cảm xúc của bạn mỗi ngày.",
     empty_button: "Viết nhật ký đầu tiên",
     no_image_desc: "Bạn chưa có bài viết nào có ảnh.",
-    
+
     // Settings
     profile: "Hồ sơ",
     notifications: "Thông báo",
@@ -41,7 +41,7 @@ export const translations = {
     privacy: "Chính sách bảo mật",
     logout: "Đăng xuất",
     login_google: "Đăng nhập Google",
-    
+
     // General
     save: "Lưu",
     cancel: "Hủy",
@@ -50,10 +50,28 @@ export const translations = {
     back: "Quay lại",
     view_all: "Xem tất cả",
     theme: "Giao diện",
-    
+
+    // Security
+    secure_garden: "Secure Garden",
+    enter_pin: "Nhập mã PIN bảo mật",
+    set_pin: "Thiết lập mã PIN",
+    pin_incorrect: "Mã PIN không đúng",
+    forgot_pin: "QUÊN MẬT KHẨU",
+    privacy_footer: "KHÔNG GIAN CỦA BẠN LÀ RIÊNG TƯ",
+    confirm_pin: "Xác nhận mã PIN",
+    create_pin_desc: "Tạo mã PIN để bảo vệ nhật ký của bạn",
+    change_pin: "Thay đổi mã PIN",
+    disable_pin: "Tắt khóa ứng dụng",
+    lock_app_options: "Bạn muốn làm gì với khóa ứng dụng?",
+    disable_pin_confirm: "Bạn có chắc muốn tắt khóa ứng dụng không?",
+    set_pin_success: "Đã thiết lập mã PIN thành công!",
+    change_pin_success: "Đã thay đổi mã PIN thành công!",
+    confirm: "Xác nhận",
+    success: "Thành công",
+
     // Month Names
-    jan: "Tháng 1", feb: "Tháng 2", mar: "Tháng 3", apr: "Tháng 4", 
-    may: "Tháng 5", jun: "Tháng 6", jul: "Tháng 7", aug: "Tháng 8", 
+    jan: "Tháng 1", feb: "Tháng 2", mar: "Tháng 3", apr: "Tháng 4",
+    may: "Tháng 5", jun: "Tháng 6", jul: "Tháng 7", aug: "Tháng 8",
     sep: "Tháng 9", oct: "Tháng 10", nov: "Tháng 11", dec: "Tháng 12"
   },
   en: {
@@ -62,11 +80,11 @@ export const translations = {
     stats: "Statistics",
     journeys: "Journeys",
     settings: "Settings",
-    
+
     // Home
     home_title: "Today's Peace",
     home_question: "How are you feeling today?",
-    
+
     // Stats
     stats_title: "Mood Statistics",
     daily_stats: "Daily Details",
@@ -74,20 +92,20 @@ export const translations = {
     no_data: "No data",
     mood: "Mood",
     images: "Images",
-    
+
     // Mood Names (Fallback)
     very_happy: "Very Happy",
     happy: "Happy",
     neutral: "Neutral",
     sad: "Sad",
     angry: "Angry",
-    
+
     // Empty State
     empty_title: "No journal entries yet",
     empty_desc: "Write your first entry to capture your feelings every day.",
     empty_button: "Write first entry",
     no_image_desc: "You don't have any posts with photos yet.",
-    
+
     // Settings
     profile: "Profile",
     notifications: "Notifications",
@@ -99,7 +117,7 @@ export const translations = {
     privacy: "Privacy Policy",
     logout: "Logout",
     login_google: "Login with Google",
-    
+
     // General
     save: "Save",
     cancel: "Cancel",
@@ -108,10 +126,28 @@ export const translations = {
     back: "Back",
     view_all: "View All",
     theme: "Theme",
-    
+
+    // Security
+    secure_garden: "Secure Garden",
+    enter_pin: "Enter Security PIN",
+    set_pin: "Set Security PIN",
+    pin_incorrect: "PIN Incorrect",
+    forgot_pin: "FORGOT",
+    privacy_footer: "YOUR SANCTUARY IS PRIVATE",
+    confirm_pin: "Confirm PIN",
+    create_pin_desc: "Create a PIN to protect your journal",
+    change_pin: "Change PIN",
+    disable_pin: "Disable App Lock",
+    lock_app_options: "What would you like to do with the app lock?",
+    disable_pin_confirm: "Are you sure you want to disable the app lock?",
+    set_pin_success: "PIN set successfully!",
+    change_pin_success: "PIN changed successfully!",
+    confirm: "Confirm",
+    success: "Success",
+
     // Month Names
-    jan: "January", feb: "February", mar: "March", apr: "April", 
-    may: "May", jun: "June", jul: "July", aug: "August", 
+    jan: "January", feb: "February", mar: "March", apr: "April",
+    may: "May", jun: "June", jul: "July", aug: "August",
     sep: "September", oct: "October", nov: "November", dec: "December"
   }
 };

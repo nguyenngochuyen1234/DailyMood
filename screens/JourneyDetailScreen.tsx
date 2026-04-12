@@ -57,12 +57,21 @@ export default function JourneyDetailScreen({
   }, [route.params?.journey]);
 
   React.useEffect(() => {
-    const fetchJournals = async () => {
+    const refreshData = async () => {
+      // Refresh journey details
+      const jData = await getJourneys();
+      const updatedJ = jData.find(j => j.id === currentJourney.id);
+      if (updatedJ) {
+        setCurrentJourney(updatedJ);
+      }
+
+      // Refresh journals
       const dbJournals = await getJournals();
       setJournals(dbJournals.filter((j) => j.journeyId === currentJourney.id));
     };
-    fetchJournals();
-    const unsubscribe = navigation.addListener("focus", fetchJournals);
+
+    refreshData();
+    const unsubscribe = navigation.addListener("focus", refreshData);
     return unsubscribe;
   }, [navigation, currentJourney.id]);
 
@@ -71,7 +80,7 @@ export default function JourneyDetailScreen({
   };
 
   const handleDeleteJourney = () => {
-    Alert.alert("Xác nhận xóa", `Bạn có chắc muốn xóa vĩnh viễn hành trình "${currentJourney.name || currentJourney.title}" không? Khuyến nghị: Các nhật ký thuộc hành trình này sẽ không còn nằm trong mục Hành trình nhưng vẫn xem được bên ngoài màn Nhật Ký chung.`, [
+    Alert.alert("Xác nhận xóa", `Bạn có chắc muốn xóa vĩnh viễn hành trình "${currentJourney.name}" không? Khuyến nghị: Các nhật ký thuộc hành trình này sẽ không còn nằm trong mục Hành trình nhưng vẫn xem được bên ngoài màn Nhật Ký chung.`, [
       { text: "Hủy", style: "cancel" },
       { text: "Xóa", style: "destructive", onPress: async () => {
          try {
@@ -137,7 +146,7 @@ export default function JourneyDetailScreen({
         time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }),
         date: `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`,
         moodIcon: emojiObj ? { uri: emojiObj.image } : null,
-        text: j.description || j.title,
+        text: j.description,
         image: j.images?.length ? j.images[0] : null,
         timestamp: d.getTime(),
       };
@@ -220,8 +229,8 @@ export default function JourneyDetailScreen({
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <View style={[styles.journeyInfoCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
-            <Text style={[styles.journeyTitle, { color: colors.text.dark }]}>{currentJourney.name || currentJourney.title}</Text>
+          <View style={[styles.journeyInfoCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border, shadowColor: colors.border }]}>
+            <Text style={[styles.journeyTitle, { color: colors.text.dark }]}>{currentJourney.name}</Text>
             <Text style={[styles.journeyDesc, { color: colors.text.dark }]}>{currentJourney.description || "Hãy tiếp tục viết nên câu chuyện của bạn mỗi ngày."}</Text>
           </View>
 
@@ -276,6 +285,10 @@ const styles = StyleSheet.create({
     padding: SIZES.spacing.l,
     marginBottom: SIZES.spacing.xl,
     borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   journeyTitle: {
     fontFamily: FONTS.bold,

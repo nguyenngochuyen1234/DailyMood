@@ -20,11 +20,12 @@ import {
 } from "react-native";
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import EmptyState from "./components/EmptyState";
 import MoodIcon from "./components/MoodIcon";
 import MoodSelector from "./components/MoodSelector";
 import PostCard from "./components/PostCard";
+import RepresentativeMoodCard from "./components/RepresentativeMoodCard";
 import { FONTS, SIZES } from "./constants/theme";
 import { MoodProvider, useMood } from "./context/MoodContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
@@ -51,10 +52,12 @@ function FeedScreen({ navigation }: any) {
   const { colors, backgrounds } = useTheme();
   const { emojis, loading, t } = useMood();
   const [journalSections, setJournalSections] = useState<any[]>([]);
+  const [allJournals, setAllJournals] = useState<any[]>([]);
 
   React.useEffect(() => {
     const fetchJournals = async () => {
       const dbJournals = await getJournals();
+      setAllJournals(dbJournals);
       const grouped: { [key: string]: any[] } = {};
 
       dbJournals.forEach((j) => {
@@ -62,7 +65,8 @@ function FeedScreen({ navigation }: any) {
         const dateStr = `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
 
         if (!grouped[dateStr]) grouped[dateStr] = [];
-        const emojiObj = emojis.find((e) => e.id === j.typeEmoji);
+        const emojiObj = emojis.find((e) => e.emotion_id === Number(j.typeEmoji)) ||
+          emojis.find((e) => e.id === Number(j.typeEmoji));
 
         grouped[dateStr].push({
           id: j.id,
@@ -72,7 +76,7 @@ function FeedScreen({ navigation }: any) {
             hour12: true,
           }),
           moodIcon: emojiObj ? { uri: emojiObj.image } : null,
-          text: j.description || j.title,
+          text: j.description,
           image: j.images?.length ? j.images[0] : null,
         });
       });
@@ -92,7 +96,7 @@ function FeedScreen({ navigation }: any) {
 
     return unsubscribe;
   }, [navigation, emojis]);
-
+  console.log("allJournals", allJournals);
   return (
     <ImageBackground
       source={backgrounds.home}
@@ -123,11 +127,33 @@ function FeedScreen({ navigation }: any) {
                 emojis={emojis}
                 loading={loading}
                 selectedMoodId={null}
-                onMoodChange={() => navigation.navigate("Add")}
+                onMoodChange={(moodId) =>
+                  navigation.navigate("Add", { initialMoodId: moodId })
+                }
                 containerStyle={{ paddingHorizontal: 0 }}
               />
             </View>
           </View>
+
+          {allJournals.some(j => {
+            const jd = new Date(j.time);
+            const today = new Date();
+            return jd.getDate() === today.getDate() &&
+              jd.getMonth() === today.getMonth() &&
+              jd.getFullYear() === today.getFullYear();
+          }) && (
+              <RepresentativeMoodCard
+                date={new Date()}
+                emojis={emojis}
+                journals={allJournals.filter(j => {
+                  const jd = new Date(j.time);
+                  const today = new Date();
+                  return jd.getDate() === today.getDate() &&
+                    jd.getMonth() === today.getMonth() &&
+                    jd.getFullYear() === today.getFullYear();
+                })}
+              />
+            )}
 
           {journalSections.length === 0 ? (
             <EmptyState onPress={() => navigation.navigate("Add")} />
@@ -245,6 +271,7 @@ function RootStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="AddJournal" component={AddJournalScreen} />
       <Stack.Screen name="EditEntry" component={AddJournalScreen} />
       <Stack.Screen name="CreateJourney" component={CreateJourneyScreen} />
       <Stack.Screen name="JourneyDetail" component={JourneyDetailScreen} />
@@ -252,22 +279,32 @@ function RootStack() {
       <Stack.Screen name="Gallery" component={GalleryScreen} />
       <Stack.Screen name="ThemeList" component={ThemeListScreen} />
       <Stack.Screen name="AllMoods" component={AllMoodsScreen} />
+      <Stack.Screen name="SecurityPin" component={SecurityPinScreen} />
     </Stack.Navigator>
   );
 }
 
+import { SecurityProvider, useSecurity } from "./context/SecurityContext";
+import SecurityPinScreen from "./screens/SecurityPinScreen";
+
 export default function App() {
   return (
-    <ThemeProvider>
-      <MoodProvider>
-        <AppContent />
-      </MoodProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <MoodProvider>
+          <SecurityProvider>
+            <AppContent />
+          </SecurityProvider>
+        </MoodProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
 function AppContent() {
   const { colors } = useTheme();
+  const { isLocked } = useSecurity();
+
   let [fontsLoaded] = useFonts({
     Baloo2_400Regular,
     Baloo2_700Bold,
@@ -284,6 +321,10 @@ function AppContent() {
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
+  }
+
+  if (isLocked) {
+    return <SecurityPinScreen mode="unlock" />;
   }
 
   return (
