@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Journey, JournalEntry } from '../types/models';
-import { syncJournalToDrive } from './driveService';
+import { syncAllToDrive } from './driveService';
 
 const JOURNEYS_KEY = '@dailymood_journeys';
 const JOURNALS_KEY = '@dailymood_journals';
@@ -69,15 +69,79 @@ export const saveJournal = async (journal: JournalEntry): Promise<void> => {
   }
 };
 
-export const saveJournalWithSync = async (journal: JournalEntry, isPro: boolean = false): Promise<void> => {
+/**
+ * HÀM 1: Lưu trữ cho người dùng bình thường (Normal)
+ * Chỉ lưu vào bộ nhớ cục bộ, việc đồng bộ sẽ thực hiện thủ công sau.
+ */
+export const saveWithManualSync = async (
+  type: 'journal' | 'journey',
+  data: JournalEntry | Journey
+): Promise<void> => {
   try {
-    // 1. Luôn lưu vào local storage trước
-    await saveJournal(journal);
+    if (type === 'journal') {
+      await saveJournal(data as JournalEntry);
+    } else {
+      await saveJourney(data as Journey);
+    }
+    console.log(`[Normal] Đã lưu ${type} vào local.`);
+  } catch (e) {
+    console.error("Lỗi trong saveWithManualSync", e);
+    throw e;
+  }
+};
 
-    // 2. Nếu là tài khoản Pro, thực hiện đồng bộ ngay lên Drive
+/**
+ * HÀM 2: Lưu trữ cho người dùng Pro (Auto Sync)
+ * Lưu vào bộ nhớ cục bộ và tự động đẩy lên Drive ngay lập tức.
+ */
+export const saveWithAutoSync = async (
+  type: 'journal' | 'journey',
+  data: JournalEntry | Journey,
+  accessToken: string | null
+): Promise<void> => {
+  try {
+    // 1. Luôn lưu vào local trước
+    if (type === 'journal') {
+      await saveJournal(data as JournalEntry);
+    } else {
+      await saveJourney(data as Journey);
+    }
+
+    // 2. Tự động đồng bộ toàn bộ dữ liệu lên Drive
+    const journeys = await getJourneys();
+    const journals = await getJournals();
+    
+    // Không await để không chặn UI, nhưng vẫn log lỗi nếu fail
+    syncAllToDrive(accessToken, journals, journeys).catch(err => {
+      console.error("Auto-sync failed for Pro user", err);
+    });
+
+  } catch (e) {
+    console.error("Lỗi trong saveWithAutoSync", e);
+    throw e;
+  }
+};
+
+/**
+ * Hàm thực hiện đồng bộ thủ công toàn bộ dữ liệu
+ */
+export const manualSyncAll = async (accessToken: string | null): Promise<void> => {
+  try {
+    const journeys = await getJourneys();
+    const journals = await getJournals();
+    await syncAllToDrive(accessToken, journals, journeys);
+  } catch (e) {
+    console.error("Lỗi khi đồng bộ thủ công", e);
+    throw e;
+  }
+};
+
+export const saveJournalWithSync = async (journal: JournalEntry, isPro: boolean = false, accessToken: string | null = null): Promise<void> => {
+  try {
     if (isPro) {
-      // Lưu ngầm, không await để tránh chờ giao diện
-      syncJournalToDrive(journal).catch(e => console.error("Auto sync failed", e));
+      await saveWithAutoSync('journal', journal, accessToken);
+    } else {
+      await saveWithManualSync('journal', journal);
     }
   } catch (e) {
     console.error("Error in saveJournalWithSync", e);

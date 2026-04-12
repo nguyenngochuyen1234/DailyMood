@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>204467116231-sbit2il36fa424hu8u3sjdght5e74o1r.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.204467116231-sbit2il36fa424hu8u3sjdght5e74o1r</string>
+	<key>CFBundleIdentifier</key>
+	<string></string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>204467116231-7v1lp92b6osjrgip43ra493s5817qbak.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA-ZUcJtCztFNpLyR7fKWhov_zgqxcBg0o</string>
+	<key>GCM_SENDER_ID</key>
+	<string>204467116231</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.huyen.dailymood</string>
+	<key>PROJECT_ID</key>
+	<string>dailymood-463a6</string>
+	<key>STORAGE_BUCKET</key>
+	<string>dailymood-463a6.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:204467116231:ios:f280d8f75fa8cf8cf146e2</string>
+</dict>
+</plist>

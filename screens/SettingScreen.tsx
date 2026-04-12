@@ -35,6 +35,7 @@ import {
 import { useMood } from "../context/MoodContext";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { backupToDrive, restoreFromDrive } from "../lib/googleDriveService";
+import { manualSyncAll } from "../lib/storage";
 const { width } = Dimensions.get("window");
 
 // Removed static THEME_PREVIEWS as they are now fetched from Supabase via ThemeContext
@@ -122,11 +123,11 @@ export default function SettingScreen({ navigation }: any) {
     if (!accessToken) return Alert.alert("Lỗi", "Vui lòng đăng nhập trước");
     try {
       setSyncLoading(true);
-      const mockDataToBackup = { settings: { theme: selectedThemeId } }; // TODO: Thay bằng data thật
-      await backupToDrive(accessToken, mockDataToBackup);
-      Alert.alert("Thành công", "Đã sao lưu lên Google Drive!");
+      // Gọi hàm đồng bộ dữ liệu thật (Journeys + Journals)
+      await manualSyncAll(accessToken);
+      Alert.alert("Thành công", "Đã sao lưu toàn bộ dữ liệu lên Google Drive!");
     } catch (e: any) {
-      Alert.alert("Lỗi sao lưu", e.message);
+      Alert.alert("Lỗi sao lưu", e.message || "Đã có lỗi xảy ra");
     } finally {
       setSyncLoading(false);
       setShowSyncModal(false);

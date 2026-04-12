@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Trash2,
 } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { useMood } from "../context/MoodContext";
@@ -27,13 +28,15 @@ import { FONTS, SIZES } from "../constants/theme";
 import JourneyPicker from "../components/JourneyPicker";
 import MoodSelector from "../components/MoodSelector";
 import {
-  saveJournal,
+  saveWithManualSync,
+  saveWithAutoSync,
   getJourneys,
   getJournals,
   updateJournal,
   deleteJournal,
 } from "../lib/storage";
 import { Journey } from "../types/models";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
 
 const { width } = Dimensions.get("window");
 
@@ -47,8 +50,13 @@ export default function AddJournalScreen({
   const { journalId } = route?.params || {};
   const isEditing = !!journalId;
 
-  const { colors, backgrounds } = useTheme();
+  const { backgrounds, colors } = useTheme();
   const { emojis, loading } = useMood();
+  const { accessToken } = useGoogleAuth(); // Lấy token từ hook
+
+  // BIẾN MANUALLY ĐƯỢC YÊU CẦU: can be true/false để test
+  const isPro = true;
+
   const [selectedMoodId, setSelectedMoodId] = useState<number | null>(null);
 
   // Khởi tạo mood mặc định khi emoji được tải xong
@@ -120,7 +128,12 @@ export default function AddJournalScreen({
         await updateJournal(journalData);
         navigation.goBack();
       } else {
-        await saveJournal(journalData);
+        // Sử dụng logic phân tầng dựa trên isPro
+        if (isPro) {
+          await saveWithAutoSync('journal', journalData, accessToken);
+        } else {
+          await saveWithManualSync('journal', journalData);
+        }
         navigation.goBack();
       }
     } catch (e) {
@@ -147,18 +160,39 @@ export default function AddJournalScreen({
     ]);
   };
 
-  const handleAddPhoto = () => {
+  const handleAddPhoto = async () => {
+    // 1. Kiểm tra giới hạn 3 ảnh
     if (images.length >= 3) {
       Alert.alert("Thông báo", "Bạn chỉ được tải lên tối đa 3 ảnh.");
       return;
     }
-    const mockImages = [
-      "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=500&auto=format&fit=crop&q=60",
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&auto=format&fit=crop&q=60",
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=60",
-    ];
-    const randomImg = mockImages[Math.floor(Math.random() * mockImages.length)];
-    setImages([...images, randomImg]);
+
+    // 2. Xin quyền truy cập thư viện ảnh
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert("Lỗi", "Ứng dụng cần quyền truy cập thư viện ảnh để thực hiện chức năng này.");
+      return;
+    }
+
+    // 3. Mở thư viện ảnh
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: 3 - images.length, // Giới hạn chỉ chọn thêm số ảnh còn thiếu
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const selectedUris = result.assets.map(asset => asset.uri);
+        // Đảm bảo không vượt quá 3 ảnh (phòng trường hợp selectionLimit không hoạt động trên một số phiên bản)
+        const newImages = [...images, ...selectedUris].slice(0, 3);
+        setImages(newImages);
+      }
+    } catch (error) {
+      console.error("Error picking images:", error);
+      Alert.alert("Lỗi", "Không thể chọn ảnh.");
+    }
   };
 
   const removeImage = (index: number) => {
@@ -474,7 +508,7 @@ const styles = StyleSheet.create({
   },
   buttonText: { fontFamily: FONTS.bold, fontSize: 18 },
   galleryContainer: { marginBottom: SIZES.spacing.xl },
-  imagePreviewContainer: { marginRight: SIZES.spacing.m, position: "relative" },
+  imagePreviewContainer: { marginRight: SIZES.spacing.m, position: "relative", marginTop: 6 },
   imagePreview: { width: 120, height: 120, borderRadius: SIZES.radius.large },
   removeImageButton: {
     position: "absolute",
