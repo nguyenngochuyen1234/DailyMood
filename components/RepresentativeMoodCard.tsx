@@ -12,7 +12,7 @@ import {
 import { ChevronRight, Check } from 'lucide-react-native';
 import { FONTS, SIZES } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
-import { getDailyMoods, saveDailyMood } from '../lib/storage';
+
 
 interface Emoji {
   id: number;
@@ -104,7 +104,7 @@ export default function RepresentativeMoodCard({
         style={[styles.card, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}
       >
         <View style={styles.cardLeft}>
-          <Text style={[styles.cardLabel, { color: colors.text.light }]}>
+          <Text style={[styles.cardLabel, { color: colors.text.dark }]}>
             Cảm xúc đại diện hôm nay
           </Text>
           <View style={styles.moodRow}>
@@ -119,7 +119,7 @@ export default function RepresentativeMoodCard({
             )}
           </View>
         </View>
-        <ChevronRight size={20} color={colors.text.light} />
+        <ChevronRight size={20} color={colors.text.dark} />
       </TouchableOpacity>
 
       {/* Full modal with all moods */}
@@ -136,7 +136,7 @@ export default function RepresentativeMoodCard({
           <Text style={[styles.sheetTitle, { color: colors.text.dark }]}>
             Cảm xúc đại diện hôm nay của bạn
           </Text>
-          <Text style={[styles.sheetSubtitle, { color: colors.text.light }]}>
+          <Text style={[styles.sheetSubtitle, { color: colors.text.dark }]}>
             Chọn cảm xúc bạn muốn hiển thị trên lịch
           </Text>
 
@@ -171,13 +171,13 @@ export default function RepresentativeMoodCard({
                           styles.bar,
                           {
                             width: `${item.percentage}%`,
-                            backgroundColor: isSelected ? colors.primary : colors.text.light,
+                            backgroundColor: isSelected ? colors.primary : colors.text.dark,
                           },
                         ]}
                       />
                     </View>
                   </View>
-                  <Text style={[styles.listPercent, { color: isSelected ? colors.primary : colors.text.light }]}>
+                  <Text style={[styles.listPercent, { color: isSelected ? colors.primary : colors.text.dark }]}>
                     {item.percentage}%
                   </Text>
                   {isSelected ? (
