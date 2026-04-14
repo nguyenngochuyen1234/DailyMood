@@ -1,10 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Journey, JournalEntry } from '../types/models';
-import { syncAllToDrive } from './driveService';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Journey, JournalEntry } from "../types/models";
+import { BackupData } from "./driveService";
+import { syncAllToDrive } from "./driveService";
 
-const JOURNEYS_KEY = '@dailymood_journeys';
-const JOURNALS_KEY = '@dailymood_journals';
-const DAILY_MOODS_KEY = '@dailymood_daily_moods';
+const JOURNEYS_KEY = "@dailymood_journeys";
+const JOURNALS_KEY = "@dailymood_journals";
+const DAILY_MOODS_KEY = "@dailymood_daily_moods";
 
 export const getJourneys = async (): Promise<Journey[]> => {
   try {
@@ -30,18 +31,18 @@ export const saveJourney = async (journey: Journey): Promise<void> => {
 export const updateJourney = async (journey: Journey): Promise<void> => {
   try {
     let journeys = await getJourneys();
-    journeys = journeys.map(j => j.id === journey.id ? journey : j);
+    journeys = journeys.map((j) => (j.id === journey.id ? journey : j));
     await AsyncStorage.setItem(JOURNEYS_KEY, JSON.stringify(journeys));
   } catch (e) {
     console.error("Error updating journey", e);
     throw e;
   }
-}
+};
 
 export const deleteJourney = async (id: string): Promise<void> => {
   try {
     let journeys = await getJourneys();
-    journeys = journeys.filter(j => j.id !== id);
+    journeys = journeys.filter((j) => j.id !== id);
     await AsyncStorage.setItem(JOURNEYS_KEY, JSON.stringify(journeys));
   } catch (e) {
     console.error("Error deleting journey", e);
@@ -75,11 +76,11 @@ export const saveJournal = async (journal: JournalEntry): Promise<void> => {
  * Chỉ lưu vào bộ nhớ cục bộ, việc đồng bộ sẽ thực hiện thủ công sau.
  */
 export const saveWithManualSync = async (
-  type: 'journal' | 'journey',
-  data: JournalEntry | Journey
+  type: "journal" | "journey",
+  data: JournalEntry | Journey,
 ): Promise<void> => {
   try {
-    if (type === 'journal') {
+    if (type === "journal") {
       await saveJournal(data as JournalEntry);
     } else {
       await saveJourney(data as Journey);
@@ -96,13 +97,13 @@ export const saveWithManualSync = async (
  * Lưu vào bộ nhớ cục bộ và tự động đẩy lên Drive ngay lập tức.
  */
 export const saveWithAutoSync = async (
-  type: 'journal' | 'journey',
+  type: "journal" | "journey",
   data: JournalEntry | Journey,
-  accessToken: string | null
+  accessToken: string | null,
 ): Promise<void> => {
   try {
     // 1. Luôn lưu vào local trước
-    if (type === 'journal') {
+    if (type === "journal") {
       await saveJournal(data as JournalEntry);
     } else {
       await saveJourney(data as Journey);
@@ -113,10 +114,9 @@ export const saveWithAutoSync = async (
     const journals = await getJournals();
 
     // Không await để không chặn UI, nhưng vẫn log lỗi nếu fail
-    syncAllToDrive(accessToken, journals, journeys).catch(err => {
+    syncAllToDrive(accessToken, journals, journeys).catch((err) => {
       console.error("Auto-sync failed for Pro user", err);
     });
-
   } catch (e) {
     console.error("Lỗi trong saveWithAutoSync", e);
     throw e;
@@ -126,7 +126,9 @@ export const saveWithAutoSync = async (
 /**
  * Hàm thực hiện đồng bộ thủ công toàn bộ dữ liệu
  */
-export const manualSyncAll = async (accessToken: string | null): Promise<void> => {
+export const manualSyncAll = async (
+  accessToken: string | null,
+): Promise<void> => {
   try {
     const journeys = await getJourneys();
     const journals = await getJournals();
@@ -137,12 +139,16 @@ export const manualSyncAll = async (accessToken: string | null): Promise<void> =
   }
 };
 
-export const saveJournalWithSync = async (journal: JournalEntry, isPro: boolean = false, accessToken: string | null = null): Promise<void> => {
+export const saveJournalWithSync = async (
+  journal: JournalEntry,
+  isPro: boolean = false,
+  accessToken: string | null = null,
+): Promise<void> => {
   try {
     if (isPro) {
-      await saveWithAutoSync('journal', journal, accessToken);
+      await saveWithAutoSync("journal", journal, accessToken);
     } else {
-      await saveWithManualSync('journal', journal);
+      await saveWithManualSync("journal", journal);
     }
   } catch (e) {
     console.error("Error in saveJournalWithSync", e);
@@ -153,7 +159,7 @@ export const saveJournalWithSync = async (journal: JournalEntry, isPro: boolean 
 export const updateJournal = async (journal: JournalEntry): Promise<void> => {
   try {
     let journals = await getJournals();
-    journals = journals.map(j => j.id === journal.id ? journal : j);
+    journals = journals.map((j) => (j.id === journal.id ? journal : j));
     await AsyncStorage.setItem(JOURNALS_KEY, JSON.stringify(journals));
   } catch (e) {
     console.error("Error updating journal to storage", e);
@@ -164,7 +170,7 @@ export const updateJournal = async (journal: JournalEntry): Promise<void> => {
 export const deleteJournal = async (id: string): Promise<void> => {
   try {
     let journals = await getJournals();
-    journals = journals.filter(j => j.id !== id);
+    journals = journals.filter((j) => j.id !== id);
     await AsyncStorage.setItem(JOURNALS_KEY, JSON.stringify(journals));
   } catch (e) {
     console.error("Error deleting journal", e);
@@ -181,6 +187,22 @@ export const deleteAllData = async (): Promise<void> => {
   }
 };
 
+export const restoreBackupData = async (backup: BackupData): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(
+      JOURNEYS_KEY,
+      JSON.stringify(backup.data.journeys),
+    );
+    await AsyncStorage.setItem(
+      JOURNALS_KEY,
+      JSON.stringify(backup.data.journals),
+    );
+  } catch (e) {
+    console.error("Error restoring backup data", e);
+    throw e;
+  }
+};
+
 export const getDailyMoods = async (): Promise<Record<string, number>> => {
   try {
     const jsonValue = await AsyncStorage.getItem(DAILY_MOODS_KEY);
@@ -190,12 +212,15 @@ export const getDailyMoods = async (): Promise<Record<string, number>> => {
   }
 };
 
-export const saveDailyMood = async (dateStr: string, emotionId: number): Promise<void> => {
+export const saveDailyMood = async (
+  dateStr: string,
+  emotionId: number,
+): Promise<void> => {
   try {
     const moods = await getDailyMoods();
     moods[dateStr] = emotionId;
     await AsyncStorage.setItem(DAILY_MOODS_KEY, JSON.stringify(moods));
   } catch (e) {
-    console.error('Error saving daily mood', e);
+    console.error("Error saving daily mood", e);
   }
 };

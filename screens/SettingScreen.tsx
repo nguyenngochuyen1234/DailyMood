@@ -35,7 +35,7 @@ import {
 import { useMood } from "../context/MoodContext";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { backupToDrive, restoreFromDrive } from "../lib/googleDriveService";
-import { manualSyncAll } from "../lib/storage";
+import { manualSyncAll, restoreBackupData } from "../lib/storage";
 import { useSecurity } from "../context/SecurityContext";
 const { width } = Dimensions.get("window");
 
@@ -79,7 +79,10 @@ function SettingItem({
             { backgroundColor: `${colors.secondary}1A` },
           ]}
         >
-          {React.createElement(icon as any, { size: 20, color: colors.secondary })}
+          {React.createElement(icon as any, {
+            size: 20,
+            color: colors.secondary,
+          })}
         </View>
         <Text style={[settingStyles.itemLabel, { color: colors.text.dark }]}>
           {label}
@@ -112,9 +115,25 @@ export default function SettingScreen({ navigation }: any) {
   const { isEnabled, disablePinCode } = useSecurity();
   const [notifications, setNotifications] = useState(true);
   // Google Drive Sync
-  const { userInfo, accessToken, promptAsync, logout } = useGoogleAuth();
+  const { userInfo, accessToken, promptAsync, logout, refreshAccessToken } =
+    useGoogleAuth();
   const [syncLoading, setSyncLoading] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+
+  const showLoginExpiredAlert = () => {
+    logout();
+    Alert.alert(
+      "Phiên đăng nhập đã hết hạn",
+      "Vui lòng đăng nhập lại để tiếp tục.",
+      [
+        { text: "Huỷ", style: "cancel" },
+        {
+          text: "Đăng nhập lại",
+          onPress: () => promptAsync(),
+        },
+      ],
+    );
+  };
 
   const handleLockPress = () => {
     if (!isEnabled) {
@@ -126,12 +145,15 @@ export default function SettingScreen({ navigation }: any) {
             initialPin: pin,
             onSuccess: () => {
               navigation.navigate("Setting");
-              Alert.alert(t("success") || "Thành công", t("set_pin_success") || "Đã thiết lập mã PIN thành công!");
+              Alert.alert(
+                t("success") || "Thành công",
+                t("set_pin_success") || "Đã thiết lập mã PIN thành công!",
+              );
             },
-            onCancel: () => navigation.navigate("Setting")
+            onCancel: () => navigation.navigate("Setting"),
           });
         },
-        onCancel: () => navigation.navigate("Setting")
+        onCancel: () => navigation.navigate("Setting"),
       });
     } else {
       Alert.alert(
@@ -145,13 +167,17 @@ export default function SettingScreen({ navigation }: any) {
             onPress: () => {
               Alert.alert(
                 t("disable_pin"),
-                t("disable_pin_confirm") || "Bạn có chắc muốn tắt khóa ứng dụng không?",
+                t("disable_pin_confirm") ||
+                  "Bạn có chắc muốn tắt khóa ứng dụng không?",
                 [
                   { text: t("cancel"), style: "cancel" },
-                  { text: t("confirm") || "Xác nhận", onPress: () => disablePinCode() }
-                ]
+                  {
+                    text: t("confirm") || "Xác nhận",
+                    onPress: () => disablePinCode(),
+                  },
+                ],
               );
-            }
+            },
           },
           {
             text: t("change_pin"),
@@ -164,16 +190,20 @@ export default function SettingScreen({ navigation }: any) {
                     initialPin: pin,
                     onSuccess: () => {
                       navigation.navigate("Setting");
-                      Alert.alert(t("success") || "Thành công", t("change_pin_success") || "Đã thay đổi mã PIN thành công!");
+                      Alert.alert(
+                        t("success") || "Thành công",
+                        t("change_pin_success") ||
+                          "Đã thay đổi mã PIN thành công!",
+                      );
                     },
-                    onCancel: () => navigation.navigate("Setting")
+                    onCancel: () => navigation.navigate("Setting"),
                   });
                 },
-                onCancel: () => navigation.navigate("Setting")
+                onCancel: () => navigation.navigate("Setting"),
               });
-            }
-          }
-        ]
+            },
+          },
+        ],
       );
     }
   };
@@ -184,14 +214,23 @@ export default function SettingScreen({ navigation }: any) {
   };
 
   const handleBackup = async () => {
-    if (!accessToken) return Alert.alert("Lỗi", "Vui lòng đăng nhập trước");
+    const refreshedToken = await refreshAccessToken();
+    const token = refreshedToken || accessToken;
+    if (!token) {
+      showLoginExpiredAlert();
+      return;
+    }
     try {
       setSyncLoading(true);
       // Gọi hàm đồng bộ dữ liệu thật (Journeys + Journals)
-      await manualSyncAll(accessToken);
+      await manualSyncAll(token);
       Alert.alert("Thành công", "Đã sao lưu toàn bộ dữ liệu lên Google Drive!");
     } catch (e: any) {
-      Alert.alert("Lỗi sao lưu", e.message || "Đã có lỗi xảy ra");
+      if (e?.status === 401 || e?.message?.includes("Invalid Credentials")) {
+        showLoginExpiredAlert();
+      } else {
+        Alert.alert("Lỗi sao lưu", e.message || "Đã có lỗi xảy ra");
+      }
     } finally {
       setSyncLoading(false);
       setShowSyncModal(false);
@@ -199,14 +238,30 @@ export default function SettingScreen({ navigation }: any) {
   };
 
   const handleRestore = async () => {
-    if (!accessToken) return Alert.alert("Lỗi", "Vui lòng đăng nhập trước");
+    const refreshedToken = await refreshAccessToken();
+    const token = refreshedToken || accessToken;
+    if (!token) {
+      showLoginExpiredAlert();
+      return;
+    }
     try {
       setSyncLoading(true);
-      const data = await restoreFromDrive(accessToken);
-      // Removed logging
+      const data = await restoreFromDrive(token);
+      if (
+        !data?.data ||
+        !Array.isArray(data.data.journals) ||
+        !Array.isArray(data.data.journeys)
+      ) {
+        throw new Error("Dữ liệu backup không hợp lệ");
+      }
+      await restoreBackupData(data);
       Alert.alert("Thành công", "Đã phục hồi dữ liệu từ Google Drive!");
     } catch (e: any) {
-      Alert.alert("Lỗi", "Không lấy được dữ liệu backup cũ. " + e.message);
+      if (e?.status === 401 || e?.message?.includes("Invalid Credentials")) {
+        showLoginExpiredAlert();
+      } else {
+        Alert.alert("Lỗi", "Không lấy được dữ liệu backup cũ. " + e.message);
+      }
     } finally {
       setSyncLoading(false);
       setShowSyncModal(false);
@@ -234,8 +289,8 @@ export default function SettingScreen({ navigation }: any) {
                 userInfo?.picture
                   ? { uri: userInfo.picture }
                   : {
-                    uri: "https://ui-avatars.com/api/?name=Guest&background=random",
-                  }
+                      uri: "https://ui-avatars.com/api/?name=Guest&background=random",
+                    }
               }
               style={[styles.avatar, { borderColor: colors.primary }]}
             />
@@ -356,18 +411,10 @@ export default function SettingScreen({ navigation }: any) {
                 const primaryColor = theme.fullTheme.colors.primary;
                 const cardColor = theme.fullTheme.colors.backgroundCard;
                 const textColor = theme.fullTheme.colors.text.dark;
-
                 return (
                   <TouchableOpacity
                     key={theme.id}
-                    style={[
-                      styles.themeCard,
-                      { backgroundColor: "#fff" },
-                      selectedThemeId === theme.id && {
-                        borderColor: colors.primary,
-                        borderWidth: 2,
-                      },
-                    ]}
+                    style={[styles.themeCard, { backgroundColor: "#fff" }]}
                     onPress={() => handleThemeChange(theme.id)}
                   >
                     <View
@@ -455,7 +502,15 @@ export default function SettingScreen({ navigation }: any) {
               icon={Lock}
               colors={colors}
               label={t("lock_app")}
-              value={isEnabled ? (language === "vi" ? "Đang bật" : "Enabled") : (language === "vi" ? "Đã tắt" : "Disabled")}
+              value={
+                isEnabled
+                  ? language === "vi"
+                    ? "Đang bật"
+                    : "Enabled"
+                  : language === "vi"
+                    ? "Đã tắt"
+                    : "Disabled"
+              }
               primaryColor={colors.primary}
               onPress={handleLockPress}
             />
@@ -754,7 +809,7 @@ const styles = StyleSheet.create({
   themeTopBar: { height: 24 },
   themeContent: {
     flex: 1,
-
+    backgroundColor: "#fff",
     gap: 6,
     justifyContent: "center",
   },

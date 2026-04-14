@@ -65,7 +65,8 @@ function FeedScreen({ navigation }: any) {
         const dateStr = `${d.getDate()} ${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
 
         if (!grouped[dateStr]) grouped[dateStr] = [];
-        const emojiObj = emojis.find((e) => e.emotion_id === Number(j.typeEmoji)) ||
+        const emojiObj =
+          emojis.find((e) => e.emotion_id === Number(j.typeEmoji)) ||
           emojis.find((e) => e.id === Number(j.typeEmoji));
 
         grouped[dateStr].push({
@@ -130,30 +131,35 @@ function FeedScreen({ navigation }: any) {
                 onMoodChange={(moodId) =>
                   navigation.navigate("Add", { initialMoodId: moodId })
                 }
+                horizontal={false}
                 containerStyle={{ paddingHorizontal: 0 }}
               />
             </View>
           </View>
 
-          {allJournals.some(j => {
+          {allJournals.some((j) => {
             const jd = new Date(j.time);
             const today = new Date();
-            return jd.getDate() === today.getDate() &&
+            return (
+              jd.getDate() === today.getDate() &&
               jd.getMonth() === today.getMonth() &&
-              jd.getFullYear() === today.getFullYear();
+              jd.getFullYear() === today.getFullYear()
+            );
           }) && (
-              <RepresentativeMoodCard
-                date={new Date()}
-                emojis={emojis}
-                journals={allJournals.filter(j => {
-                  const jd = new Date(j.time);
-                  const today = new Date();
-                  return jd.getDate() === today.getDate() &&
-                    jd.getMonth() === today.getMonth() &&
-                    jd.getFullYear() === today.getFullYear();
-                })}
-              />
-            )}
+            <RepresentativeMoodCard
+              date={new Date()}
+              emojis={emojis}
+              journals={allJournals.filter((j) => {
+                const jd = new Date(j.time);
+                const today = new Date();
+                return (
+                  jd.getDate() === today.getDate() &&
+                  jd.getMonth() === today.getMonth() &&
+                  jd.getFullYear() === today.getFullYear()
+                );
+              })}
+            />
+          )}
 
           {journalSections.length === 0 ? (
             <EmptyState onPress={() => navigation.navigate("Add")} />
@@ -416,7 +422,6 @@ const styles = StyleSheet.create({
     marginTop: -SIZES.spacing.xs,
   },
   greetingContainer: {
-    paddingHorizontal: SIZES.spacing.xl,
     marginBottom: SIZES.spacing.l,
     alignItems: "center",
   },

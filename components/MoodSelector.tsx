@@ -45,11 +45,20 @@ export default function MoodSelector({
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
-    if (horizontal && selectedMoodId !== null && emojis.length > 0 && containerWidth > 0) {
+    if (
+      horizontal &&
+      selectedMoodId !== null &&
+      emojis.length > 0 &&
+      containerWidth > 0
+    ) {
       const index = emojis.findIndex((e) => e.emotion_id === selectedMoodId);
       if (index !== -1) {
-        const offset = (index * (ITEM_WIDTH + GAP)) - (containerWidth / 2) + (ITEM_WIDTH / 2);
-        scrollViewRef.current?.scrollTo({ x: Math.max(0, offset), animated: true });
+        const offset =
+          index * (ITEM_WIDTH + GAP) - containerWidth / 2 + ITEM_WIDTH / 2;
+        scrollViewRef.current?.scrollTo({
+          x: Math.max(0, offset),
+          animated: true,
+        });
       }
     }
   }, [selectedMoodId, emojis, containerWidth, horizontal]);
@@ -105,7 +114,16 @@ export default function MoodSelector({
 
   return (
     <View style={[styles.moodGridContainer, containerStyle]}>
-      {renderMoodItems()}
+      <View
+        style={{
+          width: "100%",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
+        {renderMoodItems()}
+      </View>
     </View>
   );
 }
@@ -119,8 +137,9 @@ const styles = StyleSheet.create({
   moodGridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: SIZES.spacing.m,
     padding: SIZES.spacing.m,
+    justifyContent: "space-between",
+    paddingHorizontal: SIZES.spacing.xl,
   },
   moodItem: {
     paddingHorizontal: SIZES.spacing.m,
@@ -132,6 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     paddingVertical: SIZES.spacing.s,
     width: ITEM_WIDTH,
+    marginBottom: SIZES.spacing.s,
   },
   moodItemSelected: {
     backgroundColor: "#ffffff",
