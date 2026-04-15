@@ -35,6 +35,7 @@ import AllMoodsScreen from "./screens/AllMoodsScreen";
 import CreateJourneyScreen from "./screens/CreateJourneyScreen";
 import FolderScreen from "./screens/FolderScreen";
 import GalleryScreen from "./screens/GalleryScreen";
+import ImageViewerScreen from "./screens/ImageViewerScreen";
 import JourneyDetailScreen from "./screens/JourneyDetailScreen";
 import MoodDetailScreen from "./screens/MoodDetailScreen";
 import SettingScreen from "./screens/SettingScreen";
@@ -97,7 +98,6 @@ function FeedScreen({ navigation }: any) {
 
     return unsubscribe;
   }, [navigation, emojis]);
-  console.log("allJournals", allJournals);
   return (
     <ImageBackground
       source={backgrounds.home}
@@ -283,6 +283,7 @@ function RootStack() {
       <Stack.Screen name="JourneyDetail" component={JourneyDetailScreen} />
       <Stack.Screen name="MoodDetail" component={MoodDetailScreen} />
       <Stack.Screen name="Gallery" component={GalleryScreen} />
+      <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />
       <Stack.Screen name="ThemeList" component={ThemeListScreen} />
       <Stack.Screen name="AllMoods" component={AllMoodsScreen} />
       <Stack.Screen name="SecurityPin" component={SecurityPinScreen} />
@@ -392,6 +393,7 @@ const styles = StyleSheet.create({
   bottomTabBar: {
     height: 90,
     borderTopWidth: 0,
+    borderBottomWidth: 0,
     paddingBottom: 20,
     paddingTop: 10,
     borderTopLeftRadius: SIZES.radius.xxxl,

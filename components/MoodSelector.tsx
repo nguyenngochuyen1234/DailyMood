@@ -17,7 +17,7 @@ interface Emoji {
   id: number;
   image: string;
   emotion_id: number;
-  emotion_name: string;
+  emotion_name?: string;
 }
 
 interface MoodSelectorProps {
@@ -72,30 +72,33 @@ export default function MoodSelector({
       return <ActivityIndicator color="#506F3F" style={{ padding: 20 }} />;
     }
 
-    return emojis.map((emoji) => (
-      <TouchableOpacity
-        key={emoji.emotion_id}
-        onPress={() => onMoodChange(emoji.emotion_id)}
-        style={[
-          styles.moodItem,
-          selectedMoodId === emoji.emotion_id && [
-            styles.moodItemSelected,
-            { borderColor: colors.primary },
-          ],
-        ]}
-      >
-        <Image source={{ uri: emoji.image }} style={styles.moodIcon} />
-        <Text
+    return emojis.map((emoji) => {
+      const emotionId = Number(emoji.emotion_id);
+      return (
+        <TouchableOpacity
+          key={emotionId}
+          onPress={() => onMoodChange(emotionId)}
           style={[
-            styles.moodLabel,
-            { color: colors.primary },
-            selectedMoodId === emoji.emotion_id && { color: colors.primary },
+            styles.moodItem,
+            selectedMoodId === emotionId && [
+              styles.moodItemSelected,
+              { borderColor: colors.primary },
+            ],
           ]}
         >
-          {emoji.emotion_name || "Đang tải..."}
-        </Text>
-      </TouchableOpacity>
-    ));
+          <Image source={{ uri: emoji.image }} style={styles.moodIcon} />
+          <Text
+            style={[
+              styles.moodLabel,
+              { color: colors.primary },
+              selectedMoodId === emotionId && { color: colors.primary },
+            ]}
+          >
+            {emoji.emotion_name || "Đang tải..."}
+          </Text>
+        </TouchableOpacity>
+      );
+    });
   };
 
   if (horizontal) {

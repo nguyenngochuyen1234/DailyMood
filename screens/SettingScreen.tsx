@@ -34,8 +34,9 @@ import {
 } from "../context/ThemeContext";
 import { useMood } from "../context/MoodContext";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
-import { backupToDrive, restoreFromDrive } from "../lib/googleDriveService";
+import { restoreFromDrive } from "../lib/googleDriveService";
 import { manualSyncAll, restoreBackupData } from "../lib/storage";
+import { restoreBackupWithLocalImages } from "../lib/driveService";
 import { useSecurity } from "../context/SecurityContext";
 const { width } = Dimensions.get("window");
 
@@ -247,6 +248,7 @@ export default function SettingScreen({ navigation }: any) {
     try {
       setSyncLoading(true);
       const data = await restoreFromDrive(token);
+
       if (
         !data?.data ||
         !Array.isArray(data.data.journals) ||
@@ -254,7 +256,12 @@ export default function SettingScreen({ navigation }: any) {
       ) {
         throw new Error("Dữ liệu backup không hợp lệ");
       }
-      await restoreBackupData(data);
+      const dataWithLocalImages = await restoreBackupWithLocalImages(
+        token,
+        data,
+      );
+
+      await restoreBackupData(dataWithLocalImages);
       Alert.alert("Thành công", "Đã phục hồi dữ liệu từ Google Drive!");
     } catch (e: any) {
       if (e?.status === 401 || e?.message?.includes("Invalid Credentials")) {
@@ -331,8 +338,14 @@ export default function SettingScreen({ navigation }: any) {
             style={[
               styles.premiumBanner,
               {
-                backgroundColor: `${colors.primary}1F`,
-                borderColor: `${colors.primary}33`,
+                backgroundColor:
+                  colors.primary !== "#000"
+                    ? `${colors.primary}1F`
+                    : colors.primary,
+                borderColor:
+                  colors.primary !== "#000"
+                    ? `${colors.primary}33`
+                    : colors.primary,
               },
             ]}
           >

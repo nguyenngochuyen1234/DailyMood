@@ -11,14 +11,23 @@ interface SortSelectorProps {
   onValueChange: (value: SortOrder) => void;
 }
 
-const SortSelector: React.FC<SortSelectorProps> = ({ value, onValueChange }) => {
+const SortSelector: React.FC<SortSelectorProps> = ({
+  value,
+  onValueChange,
+}) => {
   const { colors } = useTheme();
   const isNewest = value === "newest";
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}
+        style={[
+          styles.button,
+          {
+            backgroundColor: colors.backgroundCard,
+            borderColor: colors.border,
+          },
+        ]}
         onPress={() => onValueChange(isNewest ? "oldest" : "newest")}
         activeOpacity={0.7}
       >
@@ -27,7 +36,7 @@ const SortSelector: React.FC<SortSelectorProps> = ({ value, onValueChange }) => 
         ) : (
           <ArrowUpZA size={18} color={colors.primary} strokeWidth={2.5} />
         )}
-        <Text style={[styles.text, { color: colors.primary }]}>
+        <Text style={[styles.text, { color: colors.secondary }]}>
           {isNewest ? "Từ ngày gần nhất" : "Từ ngày xa nhất"}
         </Text>
         <ChevronDown size={14} color={colors.text.muted} />

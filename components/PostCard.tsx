@@ -32,7 +32,18 @@ const PostCard = ({ item }: { item: any }) => {
       </View>
 
       {item.image && (
-        <Image source={{ uri: item.image }} style={styles.postImage} />
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={(event) => {
+            event.stopPropagation();
+            navigation.navigate("ImageViewer", {
+              images: [item.image],
+              initialIndex: 0,
+            });
+          }}
+        >
+          <Image source={{ uri: item.image }} style={styles.postImage} />
+        </TouchableOpacity>
       )}
 
       {item.text && (

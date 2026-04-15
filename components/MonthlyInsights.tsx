@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { FONTS, SIZES } from "../constants/theme";
 import { useNavigation } from "@react-navigation/native";
@@ -29,12 +36,37 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
   const currentTotal = activeTab === "days" ? totalDays : totalEntries;
   const unit = activeTab === "days" ? "ngày" : "lần";
 
+  const normalizeColor = (color: string | undefined, fallback: string) => {
+    const value = color || fallback;
+    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+      return value;
+    }
+    return fallback;
+  };
+
+  const softColor = (color: string) => {
+    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      return `${color}20`;
+    }
+    return `${color}`;
+  };
+
   return (
     <View style={styles.insightsSection}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>Monthly Insights</Text>
-        
-        <View style={[styles.miniTabContainer, { backgroundColor: colors.background.soft, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+          Monthly Insights
+        </Text>
+
+        <View
+          style={[
+            styles.miniTabContainer,
+            {
+              backgroundColor: colors.background.soft,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <TouchableOpacity
             style={[
               styles.miniTab,
@@ -45,7 +77,12 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
             <Text
               style={[
                 styles.miniTabText,
-                { color: activeTab === "days" ? colors.text.textOnDark : colors.primary },
+                {
+                  color:
+                    activeTab === "days"
+                      ? colors.text.textOnDark
+                      : colors.primary,
+                },
               ]}
             >
               Ngày
@@ -61,7 +98,12 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
             <Text
               style={[
                 styles.miniTabText,
-                { color: activeTab === "counts" ? colors.text.textOnDark : colors.primary },
+                {
+                  color:
+                    activeTab === "counts"
+                      ? colors.text.textOnDark
+                      : colors.primary,
+                },
               ]}
             >
               Số lần
@@ -75,27 +117,37 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
           const emoji = emojis[index];
           if (!emoji) return null;
 
-          const moodColor = colors.moods[index] || colors.primary;
-          const bgSoftColor = moodColor + "20"; // Adding 20% opacity
+          const moodColor = normalizeColor(
+            emoji.emotion_color,
+            colors.moods[index] || colors.primary,
+          );
+          const bgSoftColor = softColor(moodColor);
           const percent = currentTotal > 0 ? (count / currentTotal) * 100 : 0;
 
           return (
-            <TouchableOpacity 
-              key={index} 
+            <TouchableOpacity
+              key={index}
               style={[
-                styles.card, 
-                { 
-                  backgroundColor: colors.backgroundCard, 
+                styles.card,
+                {
+                  backgroundColor: colors.backgroundCard,
                   borderColor: colors.border,
                   shadowColor: colors.border,
-                }
+                },
               ]}
-              onPress={() => navigation.navigate("MoodDetail", { moodId: emoji.id })}
+              onPress={() =>
+                navigation.navigate("MoodDetail", {
+                  moodId: emoji.emotion_id,
+                })
+              }
               activeOpacity={0.8}
             >
               <View style={styles.cardHeader}>
                 <View style={[styles.iconContainer]}>
-                  <Image source={{ uri: emoji.image }} style={styles.cardIcon} />
+                  <Image
+                    source={{ uri: emoji.image }}
+                    style={styles.cardIcon}
+                  />
                 </View>
                 <Text style={[styles.countText, { color: colors.text.dark }]}>
                   {count} {unit}
@@ -106,7 +158,9 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
                 {emoji.emotion_name}
               </Text>
 
-              <View style={[styles.progressTrack, { backgroundColor: bgSoftColor }]}>
+              <View
+                style={[styles.progressTrack, { backgroundColor: bgSoftColor }]}
+              >
                 <View
                   style={[
                     styles.progressBar,

@@ -75,29 +75,26 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
     return unsubscribe;
   }, [navigation]);
 
-  const handleItemPress = (item: GalleryItem) => {
-    navigation.navigate("MoodDetail", { moodId: item.moodId });
-    // Or navigate to DayDetail if preferred. User plan said DayDetail.
-    // Let's use DayDetail as per plan.
-    const d = item.date;
-    navigation.navigate("MainTabs", {
-      screen: "Stats", // DayDetail is usually reached via Stats or specific date
-    });
-    // Wait, let's navigate to DayDetailScreen directly since it's in RootStack.
-    navigation.navigate("DayDetail", {
-      day: d.getDate(),
-      month: d.getMonth(),
-      year: d.getFullYear(),
+  const handleItemPress = (index: number) => {
+    navigation.navigate("ImageViewer", {
+      images: galleryItems.map((galleryItem) => galleryItem.image),
+      initialIndex: index,
     });
   };
 
-  const renderItem = ({ item }: { item: GalleryItem }) => {
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: GalleryItem;
+    index: number;
+  }) => {
     const moodIdx = emojis.findIndex((e) => e.id === item.moodId);
 
     return (
       <TouchableOpacity
         style={styles.gridItem}
-        onPress={() => handleItemPress(item)}
+        onPress={() => handleItemPress(index)}
       >
         <Image source={{ uri: item.image }} style={styles.image} />
         <View style={styles.overlayInfo}>

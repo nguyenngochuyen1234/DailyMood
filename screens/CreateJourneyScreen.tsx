@@ -1,25 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform,
-  ScrollView, ImageBackground, Alert
-} from 'react-native';
-import { useTheme } from '../context/ThemeContext';
-import { FONTS, SIZES } from '../constants/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { saveJourney, updateJourney } from '../lib/storage';
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ImageBackground,
+  Alert,
+} from "react-native";
+import { useTheme } from "../context/ThemeContext";
+import { FONTS, SIZES } from "../constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { saveJourney, updateJourney } from "../lib/storage";
 
-export default function CreateJourneyScreen({ navigation, route, onClose }: { navigation?: any; route?: any; onClose?: () => void }) {
+export default function CreateJourneyScreen({
+  navigation,
+  route,
+  onClose,
+}: {
+  navigation?: any;
+  route?: any;
+  onClose?: () => void;
+}) {
   const { journey } = route?.params || {};
   const isEditing = !!journey;
 
   const { colors, backgrounds } = useTheme();
-  const [title, setTitle] = useState(journey?.name || '');
-  const [description, setDescription] = useState(journey?.description || '');
+  const [title, setTitle] = useState(journey?.name || "");
+  const [description, setDescription] = useState(journey?.description || "");
 
   const handleCreate = async () => {
     if (!title.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên hành trình!');
+      Alert.alert("Lỗi", "Vui lòng nhập tên hành trình!");
       return;
     }
 
@@ -28,7 +43,7 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
         await updateJourney({
           id: journey.id,
           name: title.trim(),
-          description: description.trim()
+          description: description.trim(),
         });
         if (onClose) onClose();
         else if (navigation) navigation.goBack();
@@ -36,13 +51,16 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
         await saveJourney({
           id: Date.now().toString(),
           name: title.trim(),
-          description: description.trim()
+          description: description.trim(),
         });
         if (onClose) onClose();
         else if (navigation) navigation.goBack();
       }
     } catch (e) {
-      Alert.alert('Lỗi', `Không thể ${isEditing ? 'cập nhật' : 'tạo'} hành trình`);
+      Alert.alert(
+        "Lỗi",
+        `Không thể ${isEditing ? "cập nhật" : "tạo"} hành trình`,
+      );
     }
   };
 
@@ -53,7 +71,7 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
     >
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.flex}
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -62,22 +80,43 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
                 {isEditing ? "Chỉnh sửa Hành trình" : "Bắt đầu Hành trình mới"}
               </Text>
               <Text style={[styles.subtitle, { color: colors.text.dark }]}>
-                {isEditing ? "Điều chỉnh mục tiêu và thông tin cho hành trình này." : "Thiết lập mục tiêu và bắt đầu ghi lại những khoảnh khắc đáng nhớ."}
-              </Text>D
+                {isEditing
+                  ? "Điều chỉnh mục tiêu và thông tin cho hành trình này."
+                  : "Thiết lập mục tiêu và bắt đầu ghi lại những khoảnh khắc đáng nhớ."}
+              </Text>
             </View>
 
             <View style={styles.inputSection}>
-              <Text style={[styles.label, { color: colors.text.dark }]}>Tên hành trình</Text>
+              <Text style={[styles.label, { color: colors.text.dark }]}>
+                Tên hành trình
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.backgroundCard, color: colors.text.dark, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.backgroundCard,
+                    color: colors.text.dark,
+                    borderColor: colors.border,
+                  },
+                ]}
                 placeholder="Ví dụ: Hành trình học Vẽ, Yoga mỗi ngày..."
                 placeholderTextColor={colors.text.muted}
                 value={title}
                 onChangeText={setTitle}
               />
 
-              <Text style={[styles.label, { color: colors.text.dark }]}>Mô tả hành trình (Không bắt buộc)</Text>
-              <View style={[styles.textAreaContainer, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.text.dark }]}>
+                Mô tả hành trình (Không bắt buộc)
+              </Text>
+              <View
+                style={[
+                  styles.textAreaContainer,
+                  {
+                    backgroundColor: colors.backgroundCard,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <TextInput
                   style={[styles.textArea, { color: colors.text.dark }]}
                   placeholder="Ghi chú ngắn gọn về mục tiêu của bạn..."
@@ -92,10 +131,21 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
 
             <View style={styles.footer}>
               <TouchableOpacity
-                style={[styles.createButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
+                style={[
+                  styles.createButton,
+                  {
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary,
+                  },
+                ]}
                 onPress={handleCreate}
               >
-                <Text style={[styles.createButtonText, { color: colors.text.textOnDark }]}>
+                <Text
+                  style={[
+                    styles.createButtonText,
+                    { color: colors.text.textOnDark },
+                  ]}
+                >
                   {isEditing ? "Cập nhật" : "Bắt đầu ngay"}
                 </Text>
               </TouchableOpacity>
@@ -107,7 +157,14 @@ export default function CreateJourneyScreen({ navigation, route, onClose }: { na
                   else if (navigation) navigation.goBack();
                 }}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.text.muted }]}>Hủy</Text>
+                <Text
+                  style={[
+                    styles.cancelButtonText,
+                    { color: colors.text.muted },
+                  ]}
+                >
+                  Hủy
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -127,19 +184,19 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontFamily: FONTS.bold,
     fontSize: 28,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
   },
   subtitle: {
     fontFamily: FONTS.regular,
     fontSize: 16,
     opacity: 0.6,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
   inputSection: { marginBottom: 40 },
@@ -167,13 +224,13 @@ const styles = StyleSheet.create({
   textArea: {
     fontFamily: FONTS.regular,
     fontSize: 16,
-    height: '100%',
+    height: "100%",
   },
   footer: { gap: 16 },
   createButton: {
     paddingVertical: 16,
     borderRadius: SIZES.radius.xxl,
-    alignItems: 'center',
+    alignItems: "center",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -183,6 +240,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     fontSize: 18,
   },
-  cancelButton: { paddingVertical: 12, alignItems: 'center' },
+  cancelButton: { paddingVertical: 12, alignItems: "center" },
   cancelButtonText: { fontFamily: FONTS.bold, fontSize: 16 },
 });

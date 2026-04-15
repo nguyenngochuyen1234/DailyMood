@@ -1,12 +1,24 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { translations, TranslationKey, LanguageCode } from '../constants/translations';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { supabase } from "../lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  translations,
+  TranslationKey,
+  LanguageCode,
+} from "../constants/translations";
 
 // Định nghĩa các Interface dựa trên database của bạn
 export interface Emotion {
   id: number;
   name: { [key: string]: string }; // JSONB { "en": "Happy", "vi": "Vui" }
+  color: string;
+  description: { [key: string]: string }; // JSONB { "en": "...", "vi": "..." }
 }
 
 export interface TypeEmoji {
@@ -21,7 +33,9 @@ export interface Emoji {
   type_id: number;
   emotion_id: number;
   // Metadata join từ bảng emotions
-  emotion_name?: string; 
+  emotion_name?: string;
+  emotion_color?: string;
+  emotion_description?: { [key: string]: string };
 }
 
 interface MoodContextType {
@@ -40,13 +54,15 @@ interface MoodContextType {
 
 const MoodContext = createContext<MoodContextType | undefined>(undefined);
 
-const LANGUAGE_STORAGE_KEY = '@dailymood_language';
+const LANGUAGE_STORAGE_KEY = "@dailymood_language";
 
-export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const MoodProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [types, setTypes] = useState<TypeEmoji[]>([]);
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
-  const [language, setLanguageState] = useState<LanguageCode>('vi');
+  const [language, setLanguageState] = useState<LanguageCode>("vi");
   const [loading, setLoading] = useState(true);
 
   // Initialize language from storage
@@ -54,7 +70,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadLanguage = async () => {
       try {
         const savedLang = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-        if (savedLang === 'vi' || savedLang === 'en') {
+        if (savedLang === "vi" || savedLang === "en") {
           setLanguageState(savedLang);
         }
       } catch (e) {
@@ -80,10 +96,8 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 1. Lấy danh sách các bộ Emoji (typeEmoji)
   const fetchTypes = async () => {
     try {
-      const { data, error } = await supabase
-        .from('typeEmoji')
-        .select('*');
-      
+      const { data, error } = await supabase.from("typeEmoji").select("*");
+
       if (error) throw error;
       if (data) {
         if (data.length > 0) {
@@ -93,45 +107,54 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
     } catch (error: any) {
-      console.error('❌ [MoodProvider] Lỗi lấy danh mục typeEmoji:', error.message);
+      console.error(
+        "❌ [MoodProvider] Lỗi lấy danh mục typeEmoji:",
+        error.message,
+      );
     }
   };
 
   // 2. Lấy danh sách Emoji thuộc bộ đang chọn và join với tên cảm xúc
   const fetchEmojis = async () => {
     if (!selectedTypeId) return;
-    
+
     setLoading(true);
     try {
       // Thực hiện join bảng emojis với bảng emotions để lấy tên cảm xúc
       const { data, error } = await supabase
-        .from('emojis')
-        .select(`
+        .from("emojis")
+        .select(
+          `
           id,
           image,
           type_id,
           emotion_id,
           emotions (
-            name
+            name,
+            color,
+            description
           )
-        `)
-        .eq('type_id', selectedTypeId);
+        `,
+        )
+        .eq("type_id", selectedTypeId);
 
       if (error) throw error;
 
       if (data) {
         // Ánh xạ dữ liệu để lấy tên theo ngôn ngữ đang chọn
         const formattedEmojis: Emoji[] = data.map((item: any) => ({
-          id: item.id,
+          id: Number(item.id),
           image: item.image,
-          type_id: item.type_id,
-          emotion_id: item.emotion_id,
-          emotion_name: item.emotions?.name?.[language] || 'Unknown'
+          type_id: Number(item.type_id),
+          emotion_id: Number(item.emotion_id),
+          emotion_name: item.emotions?.name?.[language] || "Unknown",
+          emotion_color: item.emotions?.color || "",
+          emotion_description: item.emotions?.description || {},
         }));
         setEmojis(formattedEmojis);
       }
     } catch (error) {
-      console.error('Error fetching emojis:', error);
+      console.error("Error fetching emojis:", error);
     } finally {
       setLoading(false);
     }
@@ -139,7 +162,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Helper: Lấy emoji theo emotion_id trong bộ hiện tại
   const getEmojiByEmotionId = (id: number) => {
-    return emojis.find(e => e.emotion_id === id);
+    return emojis.find((e) => e.emotion_id === id);
   };
 
   // Helper: Lấy emoji theo vị trí trong mảng (dùng cho dữ liệu mẫu cũ)
@@ -159,19 +182,19 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [selectedTypeId, language]);
 
   return (
-    <MoodContext.Provider 
-      value={{ 
-        types, 
-        emojis, 
-        selectedTypeId, 
-        language, 
-        loading, 
-        setLanguage, 
+    <MoodContext.Provider
+      value={{
+        types,
+        emojis,
+        selectedTypeId,
+        language,
+        loading,
+        setLanguage,
         setSelectedTypeId,
         refreshEmojis: fetchEmojis,
         getEmojiByEmotionId,
         getEmojiByIndex,
-        t
+        t,
       }}
     >
       {children}
@@ -182,8 +205,7 @@ export const MoodProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useMood = () => {
   const context = useContext(MoodContext);
   if (context === undefined) {
-    throw new Error('useMood must be used within a MoodProvider');
+    throw new Error("useMood must be used within a MoodProvider");
   }
   return context;
 };
-

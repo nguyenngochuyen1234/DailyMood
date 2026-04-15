@@ -74,6 +74,7 @@ export default function AddJournalScreen({
   const [isListeningDescription, setIsListeningDescription] = useState(false);
   const activeListeningField = useRef<"title" | "description" | null>(null);
   const preSpeechContent = useRef<string>("");
+  const hasInitializedJournalRef = useRef(false);
 
   const { language: appLanguage } = useMood();
 
@@ -140,18 +141,18 @@ export default function AddJournalScreen({
         setJourneys(data);
 
         if (emojis.length > 0 && !isEditing && selectedMoodId === null) {
-          if (initialMoodId) {
-            setSelectedMoodId(initialMoodId);
+          if (initialMoodId !== undefined && initialMoodId !== null) {
+            setSelectedMoodId(Number(initialMoodId));
             navigation.setParams({ initialMoodId: undefined });
           } else {
-            setSelectedMoodId(emojis[0].emotion_id);
+            setSelectedMoodId(Number(emojis[0].emotion_id));
           }
         }
 
-        if (journalId) {
+        if (journalId && !hasInitializedJournalRef.current) {
           const dbJournals = await getJournals();
           const journalToEdit = dbJournals.find((j) => j.id === journalId);
-          if (journalToEdit && !selectedJourney) {
+          if (journalToEdit) {
             setDescription(journalToEdit.description || "");
             setImages(journalToEdit.images || []);
 
@@ -168,6 +169,7 @@ export default function AddJournalScreen({
             );
             setSelectedJourney(foundJourney || null);
             setOriginalTime(journalToEdit.time);
+            hasInitializedJournalRef.current = true;
           }
         }
       };
@@ -177,7 +179,7 @@ export default function AddJournalScreen({
       return () => {
         isActive = false;
       };
-    }, [journalId, emojis, isEditing, initialMoodId, navigation, selectedJourney, selectedMoodId]),
+    }, [journalId, emojis, isEditing, initialMoodId, navigation]),
   );
 
   // Current date & time
@@ -459,7 +461,7 @@ export default function AddJournalScreen({
                     styles.descriptionInput,
                     {
                       color: colors.text.dark,
-                      borderWidth: 2,
+                      borderWidth: 1,
                       borderColor: isDescriptionFocused
                         ? colors.primary
                         : colors.border,
@@ -525,10 +527,20 @@ export default function AddJournalScreen({
                 >
                   {images.map((img, index) => (
                     <View key={index} style={styles.imagePreviewContainer}>
-                      <Image
-                        source={{ uri: img }}
-                        style={styles.imagePreview}
-                      />
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() =>
+                          navigation.navigate("ImageViewer", {
+                            images,
+                            initialIndex: index,
+                          })
+                        }
+                      >
+                        <Image
+                          source={{ uri: img }}
+                          style={styles.imagePreview}
+                        />
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={[
                           styles.removeImageButton,

@@ -1,22 +1,22 @@
+import { ArrowRight, Compass } from "lucide-react-native";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Image,
   Dimensions,
+  Image,
   ImageBackground,
   Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { ChevronRight, ArrowRight, Compass } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../context/ThemeContext";
 import { FONTS, SIZES } from "../constants/theme";
-import CreateJourneyScreen from "./CreateJourneyScreen";
+import { useTheme } from "../context/ThemeContext";
 import { getJournals, getJourneys } from "../lib/storage";
 import { Journey } from "../types/models";
+import CreateJourneyScreen from "./CreateJourneyScreen";
 
 const { width } = Dimensions.get("window");
 
@@ -48,7 +48,7 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
         ...j,
         postCount: counts[j.id] || 0,
         lastImage: lastImages[j.id] || null,
-      }))
+      })),
     );
   }, []);
 
@@ -77,7 +77,10 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
           <View
             style={[
               styles.bannerOverlay,
-              { backgroundColor: colors.backgroundCard, marginBottom: SIZES.spacing.xl },
+              {
+                backgroundColor: colors.backgroundCard,
+                marginBottom: SIZES.spacing.xl,
+              },
             ]}
           >
             <Text style={[styles.bannerTitle, { color: colors.text.dark }]}>
@@ -94,7 +97,7 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
               key={item.id}
               style={[
                 styles.journeyCard,
-                { 
+                {
                   backgroundColor: colors.backgroundCard,
                   borderColor: colors.border,
                   shadowColor: colors.border,

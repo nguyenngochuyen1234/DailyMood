@@ -85,7 +85,6 @@ export const saveWithManualSync = async (
     } else {
       await saveJourney(data as Journey);
     }
-    console.log(`[Normal] Đã lưu ${type} vào local.`);
   } catch (e) {
     console.error("Lỗi trong saveWithManualSync", e);
     throw e;

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../context/ThemeContext";
 import { useMood } from "../context/MoodContext";
 import { FONTS, SIZES } from "../constants/theme";
@@ -18,17 +19,18 @@ import EmptyState from "../components/EmptyState";
 import { ChevronLeft } from "lucide-react-native";
 import { LineChart } from "react-native-chart-kit";
 import CalendarGrid from "../components/CalendarGrid";
+import MonthSelector from "../components/MonthSelector";
 import { getJournals } from "../lib/storage";
 import { JournalEntry } from "../types/models";
 
 const { width } = Dimensions.get("window");
 
 const MOOD_QUOTES: Record<number, string> = {
-  0: "Hãy mỉm cười với đời, đời sẽ mỉm cười với bạn.",
-  1: "Cho phép bản thân được buồn, vì sau cơn mưa trời lại sáng.",
-  2: "Bình yên thật giản đơn là khi tâm trí không phiền não.",
-  3: "Sẵn sàng đón nhận những điều tuyệt vời nhất và trải nghiệm mới!",
-  4: "Hãy nghỉ ngơi nếu bạn cần, nhưng đừng bao giờ từ bỏ.",
+  0: "Hay mim cuoi voi doi, doi se mim cuoi voi ban.",
+  1: "Cho phep ban than duoc buon, vi sau con mua troi lai sang.",
+  2: "Binh yen that gian don la khi tam tri khong phien nao.",
+  3: "San sang don nhan nhung dieu tuyet voi nhat va trai nghiem moi!",
+  4: "Hay nghi ngoi neu ban can, nhung dung bao gio tu bo.",
 };
 
 export default function MoodDetailScreen({
@@ -38,98 +40,151 @@ export default function MoodDetailScreen({
   navigation: any;
   route: any;
 }) {
-  const { moodId = 4 } = route.params || {}; // Assuming moodId is number, fallback to something
+  const { moodId = 4 } = route.params || {};
   const { colors, backgrounds } = useTheme();
-  const { emojis, t, language } = useMood();
-  const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const { emojis, language } = useMood();
+  const [allJournals, setAllJournals] = useState<JournalEntry[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const mood = emojis.find((m) => m.id === moodId) || emojis[0];
-  const quote = MOOD_QUOTES[mood?.emotion_id || 0] || MOOD_QUOTES[0];
+  const mood = useMemo(() => {
+    const numericMoodId = Number(moodId);
+    return (
+      emojis.find((emoji) => emoji.emotion_id === numericMoodId) ||
+      emojis.find((emoji) => emoji.id === numericMoodId) ||
+      emojis[0]
+    );
+  }, [emojis, moodId]);
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      const all = await getJournals();
-      const filtered = all.filter(j => Number(j.typeEmoji) === moodId);
-      setJournals(filtered.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()));
-    };
-    fetchData();
-  }, [moodId]);
+  const selectedEmotionId = mood?.emotion_id ?? Number(moodId);
 
-  if (!mood) return null;
+  const quote =
+    mood?.emotion_description?.[language] ||
+    MOOD_QUOTES[selectedEmotionId] ||
+    MOOD_QUOTES[0];
 
-  // Dummy data for Line Chart (Tần suất xuất hiện theo tuần)
-  // Real data for Line Chart (Tần suất xuất hiện theo tuần trong tháng hiện tại)
-  const lineChartData = useMemo(() => {
-    const counts = [0, 0, 0, 0]; // 4 weeks
-    const now = new Date();
-    journals.forEach(j => {
-      const d = new Date(j.time);
-      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-        const week = Math.floor((d.getDate() - 1) / 7);
-        if (week < 4) counts[week]++;
-        else counts[3]++;
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      const fetchData = async () => {
+        const journals = await getJournals();
+        if (isActive) {
+          setAllJournals(journals);
+        }
+      };
+
+      fetchData();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
+
+  const moodJournals = useMemo(() => {
+    return allJournals.filter((journal) => {
+      const journalMoodValue = Number(journal.typeEmoji);
+      if (journalMoodValue === selectedEmotionId) {
+        return true;
       }
+
+      return emojis.some(
+        (emoji) =>
+          emoji.emotion_id === selectedEmotionId && emoji.id === journalMoodValue,
+      );
+    });
+  }, [allJournals, emojis, selectedEmotionId]);
+
+  const filteredJournals = useMemo(() => {
+    return moodJournals
+      .filter((journal) => {
+        const date = new Date(journal.time);
+        return (
+          date.getMonth() === currentDate.getMonth() &&
+          date.getFullYear() === currentDate.getFullYear()
+        );
+      })
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+  }, [moodJournals, currentDate]);
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
+  };
+
+  const lineChartData = useMemo(() => {
+    const counts = [0, 0, 0, 0];
+
+    filteredJournals.forEach((journal) => {
+      const date = new Date(journal.time);
+      const week = Math.floor((date.getDate() - 1) / 7);
+      if (week < 4) counts[week]++;
+      else counts[3]++;
     });
 
-    const moodIndex = emojis.findIndex(e => e.id === mood.id);
-
     return {
-      labels: ["Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4"],
+      labels: ["Tuan 1", "Tuan 2", "Tuan 3", "Tuan 4"],
       datasets: [
         {
           data: counts,
-          color: (opacity = 1) => colors.moods[moodIndex] || colors.primary,
+          color: () => mood?.emotion_color || colors.primary,
           strokeWidth: 3,
         },
       ],
     };
-  }, [journals, colors, mood.id, emojis]);
+  }, [filteredJournals, mood?.emotion_color, colors.primary]);
 
-  // Real data for Calendar
   const calendarData = useMemo(() => {
-    const now = new Date();
     const daysInMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      0,
     ).getDate();
-    const moodIndexInEmojis = emojis.findIndex((e) => e.id === mood.id);
-    return Array.from({ length: daysInMonth }, (_, i) => {
-      const day = i + 1;
-      const hasThisMood = journals.some((j) => {
-        const d = new Date(j.time);
-        return (
-          d.getDate() === day &&
-          d.getMonth() === now.getMonth() &&
-          d.getFullYear() === now.getFullYear()
-        );
+    const moodIndexInEmojis = emojis.findIndex(
+      (emoji) => emoji.emotion_id === selectedEmotionId,
+    );
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+      const day = index + 1;
+      const hasThisMood = filteredJournals.some((journal) => {
+        const date = new Date(journal.time);
+        return date.getDate() === day;
       });
+
       return {
         day,
         moodIndex: hasThisMood ? moodIndexInEmojis : -1,
       };
     });
-  }, [journals, mood.id, emojis]);
+  }, [currentDate, filteredJournals, emojis, selectedEmotionId]);
 
-  // Real List of Posts for this mood
   const moodPosts = useMemo(() => {
-    return journals.map(j => {
-      const d = new Date(j.time);
+    return filteredJournals.map((journal) => {
+      const date = new Date(journal.time);
       return {
-        id: j.id,
-        date: `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`,
-        time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-        moodIcon: { uri: mood.image },
-        text: j.description || j.title || "No description",
-        image: j.images?.length ? j.images[0] : null
+        id: journal.id,
+        date: `${date.getDate()} ${date.toLocaleString("default", { month: "short" })} ${date.getFullYear()}`,
+        time: date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+        moodIcon: mood?.image ? { uri: mood.image } : null,
+        text: journal.description || "No description",
+        image: journal.images?.length ? journal.images[0] : null,
       };
     });
-  }, [journals, mood.image]);
+  }, [filteredJournals, mood?.image]);
+
+  if (!mood) return null;
 
   return (
-    <ImageBackground source={backgrounds.home} style={[styles.container, { backgroundColor: colors.background.main }]}>
+    <ImageBackground
+      source={backgrounds.home}
+      style={[styles.container, { backgroundColor: colors.background.main }]}
+    >
       <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -138,76 +193,106 @@ export default function MoodDetailScreen({
             <ChevronLeft size={28} color={colors.text.dark} />
           </TouchableOpacity>
           <Text style={[styles.screenTitle, { color: colors.text.dark }]}>
-            {language === 'vi' ? 'Chi tiết cảm xúc' : 'Mood Details'}
+            {language === "vi" ? "Chi tiet cam xuc" : "Mood Details"}
           </Text>
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Mood Summary */}
-          <View style={[styles.summaryCard, { backgroundColor: colors.backgroundCard, borderColor: colors.border, shadowColor: colors.border }]}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View
+            style={[
+              styles.summaryCard,
+              {
+                backgroundColor: colors.backgroundCard,
+                borderColor: colors.border,
+                shadowColor: colors.border,
+              },
+            ]}
+          >
             <Image source={{ uri: mood.image }} style={styles.largeIcon} />
-            <Text style={[styles.moodName, { color: colors.text.dark }]}>{mood.emotion_name}</Text>
-            <Text style={[styles.quoteText, { color: colors.text.muted }]}>"{quote}"</Text>
+            <Text style={[styles.moodName, { color: colors.text.dark }]}>
+              {mood.emotion_name}
+            </Text>
+            <Text style={[styles.quoteText, { color: colors.text.muted }]}>
+              "{quote}"
+            </Text>
           </View>
 
-          {/* Line Chart */}
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>{language === 'vi' ? 'Tần suất trong tháng' : 'Monthly Frequency'}</Text>
-            <View style={[styles.chartContainer, { backgroundColor: colors.backgroundCard, borderColor: colors.border, shadowColor: colors.border }]}>
+            <MonthSelector currentDate={currentDate} onChangeMonth={changeMonth} />
+          </View>
+
+          <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+              {language === "vi" ? "Tan suat trong thang" : "Monthly Frequency"}
+            </Text>
+            <View
+              style={[
+                styles.chartContainer,
+                {
+                  backgroundColor: colors.backgroundCard,
+                  borderColor: colors.border,
+                  shadowColor: colors.border,
+                },
+              ]}
+            >
               <LineChart
                 data={lineChartData}
                 width={width - 50}
                 height={220}
                 yAxisSuffix=""
                 yAxisInterval={1}
+                fromZero
                 chartConfig={{
                   backgroundColor: "transparent",
                   backgroundGradientFrom: colors.backgroundCard,
                   backgroundGradientTo: colors.backgroundCard,
                   decimalPlaces: 0,
-                  color: (opacity = 1) => colors.text.dark,
-                  labelColor: (opacity = 1) => colors.text.muted,
+                  color: () => mood.emotion_color || colors.primary,
+                  labelColor: () => colors.text.muted,
                   style: {
-                    borderRadius: 16
+                    borderRadius: 16,
                   },
                   propsForDots: {
                     r: "5",
                     strokeWidth: "2",
-                    stroke: colors.border
-                  }
+                    stroke: colors.border,
+                  },
                 }}
                 bezier
-                style={{
-                  marginVertical: 8,
-                  borderRadius: 16
-                }}
+                style={styles.chart}
               />
             </View>
           </View>
 
-          {/* Calendar Highlight */}
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>Ngày mang cảm xúc {(mood.emotion_name || '').toLowerCase()}</Text>
-            <CalendarGrid
-              calendarData={calendarData}
-              displayMode="icon"
-            />
+            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+              {language === "vi"
+                ? `Ngay mang cam xuc ${(mood.emotion_name || "").toLowerCase()}`
+                : `Days with ${(mood.emotion_name || "").toLowerCase()}`}
+            </Text>
+            <CalendarGrid calendarData={calendarData} displayMode="icon" />
           </View>
 
-          {/* Post List */}
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>{language === 'vi' ? 'Nhật ký liên quan' : 'Related Logs'}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+              {language === "vi" ? "Nhat ky lien quan" : "Related Logs"}
+            </Text>
             {moodPosts.length === 0 ? (
               <EmptyState
-                title="Chưa có nhật ký"
-                description={`Bạn chưa có bài viết nào gắn cảm xúc ${(mood.emotion_name || '').toLowerCase()}.`}
+                title={language === "vi" ? "Chua co nhat ky" : "No journal yet"}
+                description={
+                  language === "vi"
+                    ? `Khong co bai viet nao gan cam xuc ${(mood.emotion_name || "").toLowerCase()} trong thang nay.`
+                    : `No entries with ${(mood.emotion_name || "").toLowerCase()} in this month.`
+                }
                 onPress={() => navigation.navigate("Add")}
               />
             ) : (
-              moodPosts.map(post => (
-                <PostCard key={post.id} item={post} />
-              ))
+              moodPosts.map((post) => <PostCard key={post.id} item={post} />)
             )}
           </View>
 
@@ -289,5 +374,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 3,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
   },
 });
