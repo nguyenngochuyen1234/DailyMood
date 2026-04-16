@@ -12,20 +12,15 @@ import {
 import { ChevronRight, Check } from 'lucide-react-native';
 import { FONTS, SIZES } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
-
-
-interface Emoji {
-  id: number;
-  image: string;
-  emotion_id: number;
-  emotion_name: string;
-}
+import type { Emoji } from '../context/MoodContext';
+import { getDailyMoods, getLocalDateKey, saveDailyMood } from '../lib/storage';
 
 interface RepresentativeMoodCardProps {
   journals: any[];
   emojis: Emoji[];
   date: Date;
   onRepresentativeChanged?: (emotionId: number) => void;
+  onPress?: () => void;
 }
 
 export default function RepresentativeMoodCard({
@@ -33,13 +28,14 @@ export default function RepresentativeMoodCard({
   emojis,
   date,
   onRepresentativeChanged,
+  onPress,
 }: RepresentativeMoodCardProps) {
   const { colors } = useTheme();
   const [representativeId, setRepresentativeId] = useState<number | null>(null);
   const [isManual, setIsManual] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = getLocalDateKey(date);
 
   // Calculate mood data (percentage per emotion)
   const moodData = useMemo(() => {
@@ -99,7 +95,7 @@ export default function RepresentativeMoodCard({
     <>
       {/* Compact card shown inline */}
       <TouchableOpacity
-        onPress={() => setModalVisible(true)}
+        onPress={onPress || (() => setModalVisible(true))}
         activeOpacity={0.85}
         style={[styles.card, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}
       >
@@ -133,7 +129,7 @@ export default function RepresentativeMoodCard({
         <View style={[styles.sheet, { backgroundColor: colors.backgroundCard }]}>
           <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
 
-          <Text style={[styles.sheetTitle, { color: colors.text.dark }]}>
+          <Text style={[styles.sheetTitle, { color: colors.secondary }]}>
             Cảm xúc đại diện hôm nay của bạn
           </Text>
           <Text style={[styles.sheetSubtitle, { color: colors.text.dark }]}>

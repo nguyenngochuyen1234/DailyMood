@@ -31,7 +31,7 @@ export default function AllMoodsScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <ArrowLeft color={colors.text.dark} size={24} />
           </TouchableOpacity>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>Bộ cảm xúc</Text>
+          <Text style={[styles.screenTitle, { color: colors.secondary }]}>Bộ cảm xúc</Text>
           <View style={{ width: 24 }} />
         </View>
 

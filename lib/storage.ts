@@ -6,6 +6,14 @@ import { syncAllToDrive } from "./driveService";
 const JOURNEYS_KEY = "@dailymood_journeys";
 const JOURNALS_KEY = "@dailymood_journals";
 const DAILY_MOODS_KEY = "@dailymood_daily_moods";
+const DAILY_IMAGES_KEY = "@dailymood_daily_images";
+
+export const getLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 export const getJourneys = async (): Promise<Journey[]> => {
   try {
@@ -221,5 +229,27 @@ export const saveDailyMood = async (
     await AsyncStorage.setItem(DAILY_MOODS_KEY, JSON.stringify(moods));
   } catch (e) {
     console.error("Error saving daily mood", e);
+  }
+};
+
+export const getDailyImages = async (): Promise<Record<string, string>> => {
+  try {
+    const jsonValue = await AsyncStorage.getItem(DAILY_IMAGES_KEY);
+    return jsonValue != null ? JSON.parse(jsonValue) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const saveDailyImage = async (
+  dateStr: string,
+  imageUri: string,
+): Promise<void> => {
+  try {
+    const images = await getDailyImages();
+    images[dateStr] = imageUri;
+    await AsyncStorage.setItem(DAILY_IMAGES_KEY, JSON.stringify(images));
+  } catch (e) {
+    console.error("Error saving daily image", e);
   }
 };

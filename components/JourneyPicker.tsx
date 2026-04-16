@@ -87,10 +87,10 @@ export default function JourneyPicker({
           <View
             style={[
               styles.modalContent,
-              { backgroundColor: colors.background.main },
+              { backgroundColor: colors.backgroundCard },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.text.dark }]}>
+	            <Text style={[styles.modalTitle, { color: colors.secondary }]}>
               Chọn Hành trình
             </Text>
 

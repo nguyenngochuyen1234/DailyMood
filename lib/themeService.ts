@@ -114,12 +114,13 @@ export const fetchThemesFromSupabase = async (): Promise<ParsedTheme[]> => {
               ? colorsJson.textOnDark
               : colorsJson.textOnDark || COLORS.text.textOnDark,
         },
-        backgroundCard: applyOpacity(
-          colorsJson.backgroundCard ||
-            colorsJson.background ||
-            COLORS.backgroundCard,
-          0.75,
-        ),
+        backgroundCard:
+          typeof colorsJson.backgroundCard === "string"
+            ? colorsJson.backgroundCard
+            : applyOpacity(
+                colorsJson.background || COLORS.backgroundCard,
+                0.75,
+              ),
       };
       // Set up backgrounds fallback and mapping
       let bgMap: any = { ...BACKGROUNDS };

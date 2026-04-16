@@ -176,6 +176,10 @@ export default function MoodDetailScreen({
       };
     });
   }, [filteredJournals, mood?.image]);
+  const moodPostIds = useMemo(
+    () => moodPosts.map((post) => post.id),
+    [moodPosts],
+  );
 
   if (!mood) return null;
 
@@ -192,7 +196,7 @@ export default function MoodDetailScreen({
           >
             <ChevronLeft size={28} color={colors.text.dark} />
           </TouchableOpacity>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>
+          <Text style={[styles.screenTitle, { color: colors.secondary }]}>
             {language === "vi" ? "Chi tiet cam xuc" : "Mood Details"}
           </Text>
           <View style={{ width: 40 }} />
@@ -226,7 +230,7 @@ export default function MoodDetailScreen({
           </View>
 
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+            <Text style={[styles.sectionTitle, { color: colors.secondary }]}>
               {language === "vi" ? "Tan suat trong thang" : "Monthly Frequency"}
             </Text>
             <View
@@ -269,7 +273,7 @@ export default function MoodDetailScreen({
           </View>
 
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+            <Text style={[styles.sectionTitle, { color: colors.secondary }]}>
               {language === "vi"
                 ? `Ngay mang cam xuc ${(mood.emotion_name || "").toLowerCase()}`
                 : `Days with ${(mood.emotion_name || "").toLowerCase()}`}
@@ -278,7 +282,7 @@ export default function MoodDetailScreen({
           </View>
 
           <View style={styles.sectionContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+            <Text style={[styles.sectionTitle, { color: colors.secondary }]}>
               {language === "vi" ? "Nhat ky lien quan" : "Related Logs"}
             </Text>
             {moodPosts.length === 0 ? (
@@ -292,7 +296,14 @@ export default function MoodDetailScreen({
                 onPress={() => navigation.navigate("Add")}
               />
             ) : (
-              moodPosts.map((post) => <PostCard key={post.id} item={post} />)
+              moodPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  item={post}
+                  journalIds={moodPostIds}
+                  initialIndex={moodPostIds.indexOf(post.id)}
+                />
+              ))
             )}
           </View>
 

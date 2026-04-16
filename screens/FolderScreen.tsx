@@ -69,7 +69,7 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.header}>
-            <Text style={[styles.headerTitle, { color: colors.text.dark }]}>
+            <Text style={[styles.headerTitle, { color: colors.secondary }]}>
               Hành trình
             </Text>
           </View>
@@ -111,7 +111,10 @@ export default function FolderScreen({ navigation }: { navigation: any }) {
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: `${colors.primary}20` },
+                    {
+                      backgroundColor: `${colors.primary}20`,
+                      borderRadius: 30,
+                    },
                   ]}
                 >
                   <Text style={[styles.badgeText, { color: colors.primary }]}>
@@ -265,7 +268,6 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: SIZES.radius.medium,
   },
   badgeText: {
     fontFamily: FONTS.bold,

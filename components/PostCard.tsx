@@ -4,7 +4,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { FONTS, SIZES } from '../constants/theme';
 
-const PostCard = ({ item }: { item: any }) => {
+const PostCard = ({
+  item,
+  journalIds,
+  initialIndex = 0,
+}: {
+  item: any;
+  journalIds?: string[];
+  initialIndex?: number;
+}) => {
   const { colors } = useTheme();
   const navigation = useNavigation<any>();
 
@@ -19,7 +27,12 @@ const PostCard = ({ item }: { item: any }) => {
           shadowColor: colors.border,
         }
       ]}
-      onPress={() => navigation.navigate("EditEntry", { journalId: item.id })}
+      onPress={() =>
+        navigation.navigate("DiaryDetail", {
+          journalIds: journalIds?.length ? journalIds : [item.id],
+          initialIndex,
+        })
+      }
     >
       <View style={styles.postHeader}>
         <View style={styles.moodBadge}>
@@ -38,6 +51,7 @@ const PostCard = ({ item }: { item: any }) => {
             event.stopPropagation();
             navigation.navigate("ImageViewer", {
               images: [item.image],
+              journalIds: [item.id],
               initialIndex: 0,
             });
           }}

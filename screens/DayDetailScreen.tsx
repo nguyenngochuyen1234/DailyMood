@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -18,9 +18,10 @@ import { useMood } from "../context/MoodContext";
 import MoodIcon from "../components/MoodIcon";
 import EmptyState from "../components/EmptyState";
 import { getJournals } from "../lib/storage";
+import { resolveImageUri } from "../lib/fileHelper";
 import { JournalEntry } from "../types/models";
 import MonthSelector from "../components/MonthSelector";
-import RepresentativeMoodCard from "../components/RepresentativeMoodCard";
+import DayRepresentativeMoodHero from "../components/DayRepresentativeMoodHero";
 
 const { width } = Dimensions.get("window");
 
@@ -29,13 +30,17 @@ const MOOD_LABELS = ["Rất vui", "Hạnh phúc", "Bình thường", "Buồn", "
 export default function DayDetailScreen({
   navigation,
   route,
+  onRepresentativeChanged,
+  onRepresentativeImageChanged,
 }: {
   navigation: any;
   route: any;
+  onRepresentativeChanged?: (date: Date, emotionId: number) => void;
+  onRepresentativeImageChanged?: (date: Date, imageUri: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { colors, backgrounds } = useTheme();
-  const { emojis, t } = useMood();
+  const { emojis, language, t } = useMood();
   const [selectedDate, setSelectedDate] = React.useState(
     route.params?.day && route.params?.month !== undefined && route.params?.year
       ? new Date(route.params.year, route.params.month, route.params.day)
@@ -91,6 +96,14 @@ export default function DayDetailScreen({
     newDate.setDate(selectedDate.getDate() + offset);
     setSelectedDate(newDate);
   };
+  const isSelectedDateToday = React.useMemo(() => {
+    const today = new Date();
+    return (
+      selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear()
+    );
+  }, [selectedDate]);
 
   const renderPieChart = () => {
     if (pieData.length === 0) {
@@ -167,7 +180,7 @@ export default function DayDetailScreen({
               color: colors.text.dark,
             })}
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text.dark }]}>
+          <Text style={[styles.headerTitle, { color: colors.secondary }]}>
             {t("daily_stats")}
           </Text>
           <View style={{ width: 28 }} />
@@ -187,20 +200,68 @@ export default function DayDetailScreen({
             />
           </View>
 
-          <RepresentativeMoodCard
+          <DayRepresentativeMoodHero
             journals={journals}
             emojis={emojis}
             date={selectedDate}
+            onRepresentativeChanged={(emotionId) =>
+              onRepresentativeChanged?.(selectedDate, emotionId)
+            }
+            onRepresentativeImageChanged={(imageUri) =>
+              onRepresentativeImageChanged?.(selectedDate, imageUri)
+            }
           />
 
           <View style={styles.timelineSection}>
             {journals.length === 0 ? (
-              <EmptyState
-                onPress={() => {
-                  navigation.goBack();
-                  navigation.navigate("AddJournal");
-                }}
+              !isSelectedDateToday ? (
+                <EmptyState
+                  title={
+                    language === "vi"
+                      ? "Chưa có nhật ký cho ngày này"
+                      : "No diary for this day"
+                  }
+                  description={
+                    language === "vi"
+                      ? "Bạn chỉ có thể tạo nhật ký cho hôm nay. Hãy quay về ngày hiện tại để viết nhật ký mới."
+                      : "You can only create entries for today. Go back to today to write a new entry."
+                  }
+                  showButton={false}
+                />
+              ) : (
+                <EmptyState
+                title={
+                  isSelectedDateToday
+                    ? undefined
+                    : language === "vi"
+                      ? "Chưa có nhật ký cho ngày này"
+                      : "No diary for this day"
+                }
+                description={
+                  isSelectedDateToday
+                    ? undefined
+                    : language === "vi"
+                      ? "Bạn chỉ có thể tạo nhật ký cho hôm nay. Hãy quay về ngày hiện tại để viết nhật ký mới."
+                      : "You can only create entries for today. Go back to today to write a new entry."
+                }
+                buttonText={
+                  isSelectedDateToday
+                    ? language === "vi"
+                      ? "Viết nhật ký hôm nay"
+                      : "Write today's entry"
+                    : undefined
+                }
+                showButton={isSelectedDateToday}
+                onPress={
+                  isSelectedDateToday
+                    ? () => {
+                        navigation.goBack();
+                        navigation.navigate("AddJournal");
+                      }
+                    : undefined
+                }
               />
+              )
             ) : (
               journals.map((item, index) => {
                 const d = new Date(item.time);
@@ -209,14 +270,33 @@ export default function DayDetailScreen({
                   minute: "2-digit",
                   hour12: true,
                 });
+                console;
+                const mood =
+                  emojis.find(
+                    (e) =>
+                      e.emotion_id === Number(item.typeEmoji) ||
+                      e.id === Number(item.typeEmoji),
+                  ) || null;
                 const moodIdx = emojis.findIndex(
                   (e) =>
                     e.emotion_id === Number(item.typeEmoji) ||
                     e.id === Number(item.typeEmoji),
                 );
+                const lineColor = mood?.emotion_color || colors.primary;
+                const timelineTitle = item.description;
 
                 return (
-                  <View key={item.id} style={styles.timelineItem}>
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.85}
+                    style={styles.timelineItem}
+                    onPress={() =>
+                      navigation.navigate("DiaryDetail", {
+                        journalIds: journals.map((journal) => journal.id),
+                        initialIndex: index,
+                      })
+                    }
+                  >
                     {/* Time Display */}
                     <View style={styles.timeContainer}>
                       <Text
@@ -228,11 +308,31 @@ export default function DayDetailScreen({
 
                     {/* Vertical Connector and Icon (Left Side) */}
                     <View style={styles.connectorContainer}>
-                      <MoodIcon
-                        index={moodIdx}
-                        size={60}
-                        style={styles.timelineImage}
-                      />
+                      {item.images?.[0] ? (
+                        <Image
+                          source={{ uri: resolveImageUri(item.images[0]) }}
+                          style={[
+                            styles.timelineImage,
+                            { borderColor: colors.background.white },
+                          ]}
+                        />
+                      ) : null}
+
+                      <View
+                        style={[
+                          styles.moodIconOnLine,
+                          {
+                            backgroundColor: colors.background.white,
+                            borderColor: lineColor,
+                          },
+                        ]}
+                      >
+                        <MoodIcon
+                          index={moodIdx}
+                          size={54}
+                          style={styles.timelineMoodIcon}
+                        />
+                      </View>
                     </View>
 
                     {/* Label (Right Side) */}
@@ -240,10 +340,10 @@ export default function DayDetailScreen({
                       <Text
                         style={[styles.moodLabel, { color: colors.text.dark }]}
                       >
-                        {item.description || "No description"}
+                        {timelineTitle}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}
@@ -333,75 +433,91 @@ const styles = StyleSheet.create({
   timelineSection: {
     marginBottom: 40,
     position: "relative",
-    paddingLeft: 10,
-  },
-  timelineLine: {
-    position: "absolute",
-    left: 110, // Adjusted to align with connectorContainer
-    top: 0,
-    bottom: 0,
-    width: 3,
-    borderRadius: 2,
-    opacity: 0.6,
+    paddingLeft: 4,
   },
   timelineItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
-    minHeight: 80,
+    minHeight: 92,
   },
   timeContainer: {
-    width: 70,
+    width: 72,
     justifyContent: "center",
   },
   timeText: {
     fontFamily: FONTS.bold,
-    fontSize: 14,
+    fontSize: 15,
   },
   connectorContainer: {
-    width: 80,
-    alignItems: "center",
+    width: 120,
     justifyContent: "center",
     position: "relative",
+    height: 92,
   },
   timelineImage: {
+    position: "absolute",
+    left: 0,
+    top: 16,
     width: 60,
     height: 60,
     borderRadius: 30,
     zIndex: 1,
+    borderWidth: 2,
   },
   noImageCircle: {
+    position: "absolute",
+    left: 0,
+    top: 16,
     width: 60,
     height: 60,
     borderRadius: 30,
     zIndex: 1,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   moodIconOnLine: {
     position: "absolute",
-    right: -10, // Position on the vertical line
+    left: 62,
     top: "50%",
-    marginTop: -15,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    marginTop: -18,
+    width: 24,
+    height: 24,
     zIndex: 2,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
+    marginLeft: 12,
   },
   timelineMoodIcon: {
-    width: 24,
-    height: 24,
+    width: 54,
+    height: 54,
+  },
+  timelineLineTop: {
+    position: "absolute",
+    left: 79,
+    top: 0,
+    width: 3,
+    height: 46,
+    borderRadius: 2,
+    opacity: 0.75,
+  },
+  timelineLineBottom: {
+    position: "absolute",
+    left: 79,
+    bottom: 0,
+    width: 3,
+    height: 46,
+    borderRadius: 2,
+    opacity: 0.75,
   },
   labelContainer: {
     flex: 1,
-    paddingLeft: 20,
-    justifyContent: "center",
+    paddingLeft: 8,
   },
   moodLabel: {
     fontFamily: FONTS.bold,
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   moodMixSection: {
     marginBottom: 20,

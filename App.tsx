@@ -26,6 +26,7 @@ import MoodIcon from "./components/MoodIcon";
 import MoodSelector from "./components/MoodSelector";
 import PostCard from "./components/PostCard";
 import RepresentativeMoodCard from "./components/RepresentativeMoodCard";
+import SortSelector, { SortOrder } from "./components/SortSelector";
 import { FONTS, SIZES } from "./constants/theme";
 import { MoodProvider, useMood } from "./context/MoodContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
@@ -33,6 +34,8 @@ import { getJournals } from "./lib/storage";
 import AddJournalScreen from "./screens/AddJournalScreen";
 import AllMoodsScreen from "./screens/AllMoodsScreen";
 import CreateJourneyScreen from "./screens/CreateJourneyScreen";
+import DayDetailScreen from "./screens/DayDetailScreen";
+import DiaryDetailScreen from "./screens/DiaryDetailScreen";
 import FolderScreen from "./screens/FolderScreen";
 import GalleryScreen from "./screens/GalleryScreen";
 import ImageViewerScreen from "./screens/ImageViewerScreen";
@@ -51,9 +54,42 @@ const Stack = createNativeStackNavigator();
 // --- Screens ---
 function FeedScreen({ navigation }: any) {
   const { colors, backgrounds } = useTheme();
-  const { emojis, loading, t } = useMood();
+  const { emojis, language, loading, t } = useMood();
   const [journalSections, setJournalSections] = useState<any[]>([]);
   const [allJournals, setAllJournals] = useState<any[]>([]);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const today = React.useMemo(() => new Date(), []);
+  const todayDateLabel = React.useMemo(() => {
+    const locale = language === "vi" ? "vi-VN" : "en-US";
+    return today.toLocaleDateString(locale, {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  }, [language, today]);
+  const sortedSections = React.useMemo(() => {
+    return [...journalSections]
+      .map((section) => ({
+        ...section,
+        data: [...section.data].sort((a: any, b: any) =>
+          sortOrder === "newest"
+            ? b.timestamp - a.timestamp
+            : a.timestamp - b.timestamp,
+        ),
+      }))
+      .sort((a, b) =>
+        sortOrder === "newest"
+          ? b.sectionTimestamp - a.sectionTimestamp
+          : a.sectionTimestamp - b.sectionTimestamp,
+      );
+  }, [journalSections, sortOrder]);
+  const flatJournalIds = React.useMemo(
+    () =>
+      sortedSections.flatMap((section) =>
+        section.data.map((item: any) => item.id),
+      ),
+    [sortedSections],
+  );
 
   React.useEffect(() => {
     const fetchJournals = async () => {
@@ -77,6 +113,7 @@ function FeedScreen({ navigation }: any) {
             minute: "2-digit",
             hour12: true,
           }),
+          timestamp: d.getTime(),
           moodIcon: emojiObj ? { uri: emojiObj.image } : null,
           text: j.description,
           image: j.images?.length ? j.images[0] : null,
@@ -86,6 +123,9 @@ function FeedScreen({ navigation }: any) {
       const sections = Object.keys(grouped).map((k) => ({
         title: k,
         data: grouped[k],
+        sectionTimestamp: Math.max(
+          ...grouped[k].map((item: any) => item.timestamp),
+        ),
       }));
       setJournalSections(sections);
     };
@@ -118,7 +158,7 @@ function FeedScreen({ navigation }: any) {
             <Text
               style={[
                 styles.screenTitle,
-                { color: colors.text.dark, textAlign: "left" },
+                { color: colors.secondary, textAlign: "left" },
               ]}
             >
               {t("home_title")}
@@ -137,9 +177,21 @@ function FeedScreen({ navigation }: any) {
             </View>
           </View>
 
+          <View style={styles.todayHeading}>
+            <Text
+              style={[styles.todayHeadingTitle, { color: colors.secondary }]}
+            >
+              {language === "vi" ? "Nhật ký hôm nay" : "Today's Diary"}
+            </Text>
+            <Text
+              style={[styles.todayHeadingDate, { color: colors.text.dark }]}
+            >
+              {todayDateLabel}
+            </Text>
+          </View>
+
           {allJournals.some((j) => {
             const jd = new Date(j.time);
-            const today = new Date();
             return (
               jd.getDate() === today.getDate() &&
               jd.getMonth() === today.getMonth() &&
@@ -158,15 +210,27 @@ function FeedScreen({ navigation }: any) {
                   jd.getFullYear() === today.getFullYear()
                 );
               })}
+              onPress={() => {
+                const today = new Date();
+                navigation.navigate("DayDetail", {
+                  day: today.getDate(),
+                  month: today.getMonth(),
+                  year: today.getFullYear(),
+                });
+              }}
             />
           )}
 
-          {journalSections.length === 0 ? (
+          {sortedSections.length === 0 ? (
             <EmptyState onPress={() => navigation.navigate("Add")} />
           ) : (
-            journalSections.map((section, index) => (
-              <View key={index}>
-                <View
+            <>
+              <View style={styles.sortContainer}>
+                <SortSelector value={sortOrder} onValueChange={setSortOrder} />
+              </View>
+              {sortedSections.map((section, index) => (
+                <View key={index}>
+                  {/* <View
                   style={{
                     paddingHorizontal: SIZES.spacing.xl,
                     paddingVertical: SIZES.spacing.s,
@@ -182,14 +246,19 @@ function FeedScreen({ navigation }: any) {
                   >
                     {section.title}
                   </Text>
+                </View> */}
+                  {section.data.map((item: any) => (
+                    <View key={item.id} style={styles.journalItemContainer}>
+                      <PostCard
+                        item={item}
+                        journalIds={flatJournalIds}
+                        initialIndex={flatJournalIds.indexOf(item.id)}
+                      />
+                    </View>
+                  ))}
                 </View>
-                {section.data.map((item: any) => (
-                  <View key={item.id} style={styles.journalItemContainer}>
-                    <PostCard item={item} />
-                  </View>
-                ))}
-              </View>
-            ))
+              ))}
+            </>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -282,6 +351,8 @@ function RootStack() {
       <Stack.Screen name="CreateJourney" component={CreateJourneyScreen} />
       <Stack.Screen name="JourneyDetail" component={JourneyDetailScreen} />
       <Stack.Screen name="MoodDetail" component={MoodDetailScreen} />
+      <Stack.Screen name="DiaryDetail" component={DiaryDetailScreen} />
+      <Stack.Screen name="DayDetail" component={DayDetailScreen} />
       <Stack.Screen name="Gallery" component={GalleryScreen} />
       <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />
       <Stack.Screen name="ThemeList" component={ThemeListScreen} />
@@ -360,6 +431,25 @@ const styles = StyleSheet.create({
   journalItemContainer: {
     paddingHorizontal: SIZES.spacing.xl,
   },
+  sortContainer: {
+    paddingHorizontal: SIZES.spacing.xl,
+    marginBottom: SIZES.spacing.s,
+  },
+  todayHeading: {
+    paddingHorizontal: SIZES.spacing.xl,
+    marginBottom: SIZES.spacing.m,
+  },
+  todayHeadingTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  todayHeadingDate: {
+    fontFamily: FONTS.regular,
+    fontSize: 14,
+    opacity: 0.8,
+    textTransform: "capitalize",
+  },
   screenTitle: {
     fontSize: 28,
     fontFamily: FONTS.bold,
@@ -418,10 +508,6 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
     borderWidth: 4,
-  },
-  sortContainer: {
-    paddingHorizontal: SIZES.spacing.xl,
-    marginTop: -SIZES.spacing.xs,
   },
   greetingContainer: {
     marginBottom: SIZES.spacing.l,

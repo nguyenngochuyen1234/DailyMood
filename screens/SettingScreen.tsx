@@ -24,6 +24,7 @@ import {
   Crown,
   Sparkles,
   Lock,
+  Smile,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FONTS, SIZES } from "../constants/theme";
@@ -77,7 +78,11 @@ function SettingItem({
         <View
           style={[
             settingStyles.iconCircle,
-            { backgroundColor: `${colors.secondary}1A` },
+            {
+              backgroundColor: `${colors.secondary}1A`,
+              borderRadius: 30,
+              overflow: "hidden",
+            },
           ]}
         >
           {React.createElement(icon as any, {
@@ -400,7 +405,7 @@ export default function SettingScreen({ navigation }: any) {
               <Text
                 style={[
                   styles.cardTitle,
-                  { color: colors.text.dark, marginBottom: 0 },
+                  { color: colors.secondary, marginBottom: 0 },
                 ]}
               >
                 {t("theme")}
@@ -505,6 +510,13 @@ export default function SettingScreen({ navigation }: any) {
               onPress={toggleLanguage}
             />
             <SettingItem
+              icon={Smile}
+              colors={colors}
+              label={language === "vi" ? "Bộ cảm xúc" : "Emoji Set"}
+              primaryColor={colors.primary}
+              onPress={() => navigation.navigate("AllMoods")}
+            />
+            <SettingItem
               icon={Database}
               colors={colors}
               label={t("data_sync")}
@@ -568,10 +580,10 @@ export default function SettingScreen({ navigation }: any) {
           <View
             style={[
               syncStyles.modalContent,
-              { backgroundColor: colors.background.white },
+              { backgroundColor: colors.backgroundCard },
             ]}
           >
-            <Text style={[syncStyles.modalTitle, { color: colors.primary }]}>
+            <Text style={[syncStyles.modalTitle, { color: colors.secondary }]}>
               Đồng Bộ Google Drive
             </Text>
 
@@ -693,7 +705,7 @@ const settingStyles = StyleSheet.create({
   iconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+
     justifyContent: "center",
     alignItems: "center",
   },

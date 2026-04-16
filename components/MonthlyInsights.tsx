@@ -54,7 +54,7 @@ const MonthlyInsights: React.FC<MonthlyInsightsProps> = ({
   return (
     <View style={styles.insightsSection}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text.dark }]}>
+        <Text style={[styles.sectionTitle, { color: colors.secondary }]}>
           Monthly Insights
         </Text>
 

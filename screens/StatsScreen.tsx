@@ -22,7 +22,12 @@ import { useMood } from "../context/MoodContext";
 import MoodIcon from "../components/MoodIcon";
 import PostCard from "../components/PostCard";
 import SortSelector, { SortOrder } from "../components/SortSelector";
-import { getJournals } from "../lib/storage";
+import {
+  getDailyImages,
+  getDailyMoods,
+  getJournals,
+  getLocalDateKey,
+} from "../lib/storage";
 import { JournalEntry } from "../types/models";
 import EmptyState from "../components/EmptyState";
 
@@ -39,13 +44,20 @@ export default function StatsScreen({ navigation }: any) {
   const [mainTab, setMainTab] = useState<"Lịch" | "Hành trình">("Lịch");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const [dailyMoods, setDailyMoods] = useState<Record<string, number>>({});
+  const [dailyImages, setDailyImages] = useState<Record<string, string>>({});
 
   React.useEffect(() => {
-    const fetchJournals = async () => {
+    const fetchStatsData = async () => {
       const dbJournals = await getJournals();
+      const storedDailyMoods = await getDailyMoods();
+      const storedDailyImages = await getDailyImages();
       setJournals(dbJournals);
+      setDailyMoods(storedDailyMoods);
+      setDailyImages(storedDailyImages);
     };
-    const unsubscribe = navigation.addListener("focus", fetchJournals);
+    const unsubscribe = navigation.addListener("focus", fetchStatsData);
+    fetchStatsData();
     return unsubscribe;
   }, [navigation]);
 
@@ -71,19 +83,29 @@ export default function StatsScreen({ navigation }: any) {
 
     return Object.keys(grouped).map((k) => ({
       title: k,
-      data: grouped[k].sort((a, b) => b.timestamp - a.timestamp),
+      sectionTimestamp: grouped[k][0]?.timestamp || 0,
+      data: grouped[k].sort((a, b) =>
+        sortOrder === "newest"
+          ? b.timestamp - a.timestamp
+          : a.timestamp - b.timestamp,
+      ),
     }));
-  }, [journals, emojis]);
+  }, [journals, emojis, sortOrder]);
 
   const sortedSections = useMemo(() => {
     let sections = [...journalSections];
     if (sortOrder === "newest") {
-      sections.sort((a, b) => new Date(b.title).getTime() - new Date(a.title).getTime());
+      sections.sort((a, b) => b.sectionTimestamp - a.sectionTimestamp);
     } else {
-      sections.sort((a, b) => new Date(a.title).getTime() - new Date(b.title).getTime());
+      sections.sort((a, b) => a.sectionTimestamp - b.sectionTimestamp);
     }
     return sections;
   }, [journalSections, sortOrder]);
+
+  const flatSortedJournalIds = useMemo(
+    () => sortedSections.flatMap((section) => section.data.map((item: any) => item.id)),
+    [sortedSections],
+  );
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate);
@@ -114,7 +136,13 @@ export default function StatsScreen({ navigation }: any) {
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      const jForDay = journals.find((j) => {
+      const dayDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        day,
+      );
+      const dayKey = getLocalDateKey(dayDate);
+      const journalsForDay = journals.filter((j) => {
         const jd = new Date(j.time);
         return (
           jd.getDate() === day &&
@@ -122,12 +150,58 @@ export default function StatsScreen({ navigation }: any) {
           jd.getFullYear() === currentDate.getFullYear()
         );
       });
+
+      let representativeEmotionId: number | undefined = dailyMoods[dayKey];
+      let representativeImageUri: string | undefined = dailyImages[dayKey];
+
+      if (representativeEmotionId === undefined && journalsForDay.length > 0) {
+        const counts: Record<number, number> = {};
+
+        journalsForDay.forEach((journal) => {
+          const matchedEmoji =
+            emojis.find((emoji) => emoji.emotion_id === Number(journal.typeEmoji)) ||
+            emojis.find((emoji) => emoji.id === Number(journal.typeEmoji));
+
+          if (!matchedEmoji) return;
+          counts[matchedEmoji.emotion_id] =
+            (counts[matchedEmoji.emotion_id] || 0) + 1;
+        });
+
+        const dominantMood = Object.entries(counts).sort(
+          (a, b) => Number(b[1]) - Number(a[1]),
+        )[0];
+
+        representativeEmotionId = dominantMood
+          ? Number(dominantMood[0])
+          : undefined;
+      }
+
+      if (
+        representativeImageUri !== undefined &&
+        !journalsForDay.some((journal) =>
+          journal.images?.some((imageUri) => imageUri === representativeImageUri),
+        )
+      ) {
+        representativeImageUri = undefined;
+      }
+
+      if (representativeImageUri === undefined && journalsForDay.length > 0) {
+        representativeImageUri =
+          journalsForDay.find((journal) => journal.images?.length)?.images?.[0];
+      }
+
       return {
         day,
-        moodIndex: jForDay ? emojis.findIndex((e) => e.emotion_id === Number(jForDay.typeEmoji) || e.id === Number(jForDay.typeEmoji)) : -1,
+        moodIndex:
+          representativeEmotionId !== undefined
+            ? emojis.findIndex(
+                (emoji) => emoji.emotion_id === representativeEmotionId,
+              )
+            : -1,
+        imageUri: representativeImageUri || null,
       };
     });
-  }, [currentDate, journals, emojis]);
+  }, [currentDate, dailyImages, dailyMoods, journals, emojis]);
 
   const stats = useMemo(() => {
     if (emojis.length === 0) return [];
@@ -148,11 +222,19 @@ export default function StatsScreen({ navigation }: any) {
     return statsTotal.reduce((sum, count) => sum + count, 0);
   }, [statsTotal]);
 
+  const handleStatsGalleryPress = (index: number) => {
+    navigation.navigate("ImageViewer", {
+      images: mockGallery.map((item) => item.image),
+      journalIds: mockGallery.map((item) => item.id),
+      initialIndex: index,
+    });
+  };
+
   return (
     <ImageBackground source={backgrounds.stats} style={[styles.container, { backgroundColor: colors.background.main }]}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>{t('stats_title')}</Text>
+          <Text style={[styles.screenTitle, { color: colors.secondary }]}>{t('stats_title')}</Text>
         </View>
 
         <View style={[styles.mainTabContainer, { borderColor: colors.border, backgroundColor: colors.background.soft }]}>
@@ -245,7 +327,7 @@ export default function StatsScreen({ navigation }: any) {
 
               <View style={styles.gallerySection}>
                 <View style={styles.galleryHeaderRow}>
-                  <Text style={[styles.sectionTitle, { color: colors.text.dark, marginBottom: 0 }]}>{t('images')}</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.secondary, marginBottom: 0 }]}>{t('images')}</Text>
                   <TouchableOpacity onPress={() => navigation.navigate("Gallery")}>
                     <Text style={{ fontFamily: FONTS.bold, color: colors.text.dark }}>{t('view_all')}</Text>
                   </TouchableOpacity>
@@ -257,14 +339,19 @@ export default function StatsScreen({ navigation }: any) {
                     showButton={false}
                   />
                 ) : (<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-                  {mockGallery.map((item) => (
-                    <View key={item.id} style={styles.galleryItem}>
+                  {mockGallery.map((item, index) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.galleryItem}
+                      activeOpacity={0.85}
+                      onPress={() => handleStatsGalleryPress(index)}
+                    >
                       <Image source={{ uri: item.image }} style={styles.galleryImage} />
                       <View style={styles.galleryInfo}>
                         <Text style={[styles.galleryDate, { color: colors.text.dark }]}>{item.date}</Text>
                         {item.moodIcon && <Image source={{ uri: item.moodIcon.uri }} style={styles.galleryIcon} />}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </ScrollView>)}
               </View>
@@ -292,7 +379,11 @@ export default function StatsScreen({ navigation }: any) {
                     </View>
                     {section.data.map((item) => (
                       <View key={item.id} style={styles.journalItemContainer}>
-                        <PostCard item={item} />
+                        <PostCard
+                          item={item}
+                          journalIds={flatSortedJournalIds}
+                          initialIndex={flatSortedJournalIds.indexOf(item.id)}
+                        />
                       </View>
                     ))}
                   </View>
@@ -304,6 +395,20 @@ export default function StatsScreen({ navigation }: any) {
 
         <Modal visible={isDetailVisible} animationType="slide" onRequestClose={() => setIsDetailVisible(false)}>
           <DayDetailScreen
+            onRepresentativeChanged={(date, emotionId) => {
+              const dateKey = getLocalDateKey(date);
+              setDailyMoods((prev) => ({
+                ...prev,
+                [dateKey]: emotionId,
+              }));
+            }}
+            onRepresentativeImageChanged={(date, imageUri) => {
+              const dateKey = getLocalDateKey(date);
+              setDailyImages((prev) => ({
+                ...prev,
+                [dateKey]: imageUri,
+              }));
+            }}
             navigation={{ ...navigation, goBack: () => setIsDetailVisible(false) }}
             route={{
               params: {

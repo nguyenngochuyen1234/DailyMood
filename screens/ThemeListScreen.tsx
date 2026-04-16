@@ -35,7 +35,7 @@ export default function ThemeListScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <ArrowLeft color={colors.text.dark} size={24} />
           </TouchableOpacity>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>
+          <Text style={[styles.screenTitle, { color: colors.secondary }]}>
             Tất cả giao diện
           </Text>
           <View style={{ width: 24 }} />

@@ -18,7 +18,7 @@ export function useGoogleAuth() {
 
   // Kiểm tra token đã lưu khi khởi động
   React.useEffect(() => {
-    checkLocalToken();
+    loadStoredSession();
   }, []);
 
   const refreshAccessToken = async (): Promise<string | null> => {
@@ -36,52 +36,20 @@ export function useGoogleAuth() {
     }
   };
 
-  const checkLocalToken = async () => {
+  const loadStoredSession = async () => {
     try {
-      await GoogleSignin.hasPlayServices();
-      const signedInUser: any = await GoogleSignin.signInSilently();
-      const tokens = await GoogleSignin.getTokens();
-      const token = tokens?.accessToken || null;
+      const storedToken = await AsyncStorage.getItem("@google_token");
+      const storedUser = await AsyncStorage.getItem("@google_user");
 
-      const signedUser =
-        signedInUser?.user || signedInUser?.data?.user || signedInUser;
-      const user = signedUser
-        ? {
-            name: signedUser.name,
-            email: signedUser.email,
-            picture: signedUser.photo,
-            id: signedUser.id,
-          }
-        : null;
-
-      if (token) {
-        setAccessToken(token);
-        await AsyncStorage.setItem("@google_token", token);
-      }
-      if (user) {
-        setUserInfo(user);
-        await AsyncStorage.setItem("@google_user", JSON.stringify(user));
+      if (storedToken) {
+        setAccessToken(storedToken);
       }
 
-      if (!token || !user) {
-        const storedToken = await AsyncStorage.getItem("@google_token");
-        const storedUser = await AsyncStorage.getItem("@google_user");
-        if (storedToken && storedUser) {
-          setAccessToken(storedToken);
-          setUserInfo(JSON.parse(storedUser));
-        }
+      if (storedUser) {
+        setUserInfo(JSON.parse(storedUser));
       }
     } catch (e) {
-      try {
-        const storedToken = await AsyncStorage.getItem("@google_token");
-        const storedUser = await AsyncStorage.getItem("@google_user");
-        if (storedToken && storedUser) {
-          setAccessToken(storedToken);
-          setUserInfo(JSON.parse(storedUser));
-        }
-      } catch {
-        // Skipped logging
-      }
+      // Skipped logging
     }
   };
 

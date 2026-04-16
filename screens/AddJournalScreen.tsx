@@ -11,6 +11,9 @@ import {
   ImageBackground,
   Alert,
   ActivityIndicator,
+  Modal,
+  FlatList,
+  Pressable,
 } from "react-native";
 import {
   ArrowLeft,
@@ -30,7 +33,6 @@ import { useTheme } from "../context/ThemeContext";
 import { useMood } from "../context/MoodContext";
 import { FONTS, SIZES } from "../constants/theme";
 import JourneyPicker from "../components/JourneyPicker";
-import MoodSelector from "../components/MoodSelector";
 import {
   saveWithManualSync,
   saveWithAutoSync,
@@ -52,15 +54,15 @@ export default function AddJournalScreen({
   navigation: any;
   route?: any;
 }) {
-  const { journalId, initialMoodId } = route?.params || {};
+  const { journalId, initialMoodId, initialJourneyId } = route?.params || {};
   const isEditing = !!journalId;
 
   const { backgrounds, colors } = useTheme();
   const { emojis, loading } = useMood();
-  const { accessToken, refreshAccessToken, promptAsync } = useGoogleAuth(); // Lấy token từ hook
+  const { accessToken, refreshAccessToken } = useGoogleAuth(); // Lấy token từ hook
 
   // BIẾN MANUALLY ĐƯỢC YÊU CẦU: can be true/false để test
-  const isPro = true;
+  const isPro = false;
 
   const [selectedMoodId, setSelectedMoodId] = useState<number | null>(null);
   const [description, setDescription] = useState("");
@@ -71,12 +73,21 @@ export default function AddJournalScreen({
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
   const [showJourneyPicker, setShowJourneyPicker] = useState(false);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
   const [isListeningDescription, setIsListeningDescription] = useState(false);
   const activeListeningField = useRef<"title" | "description" | null>(null);
   const preSpeechContent = useRef<string>("");
   const hasInitializedJournalRef = useRef(false);
 
   const { language: appLanguage } = useMood();
+  const selectedMood = React.useMemo(() => {
+    if (selectedMoodId === null) return null;
+    return (
+      emojis.find((emoji) => emoji.emotion_id === Number(selectedMoodId)) ||
+      emojis.find((emoji) => emoji.id === Number(selectedMoodId)) ||
+      null
+    );
+  }, [emojis, selectedMoodId]);
 
   React.useEffect(() => {
     Voice.onSpeechResults = onSpeechResults;
@@ -130,6 +141,20 @@ export default function AddJournalScreen({
     }
   };
 
+  React.useEffect(() => {
+    if (isEditing || emojis.length === 0) return;
+
+    if (initialMoodId !== undefined && initialMoodId !== null) {
+      setSelectedMoodId(Number(initialMoodId));
+      navigation.setParams({ initialMoodId: undefined });
+      return;
+    }
+
+    if (selectedMoodId === null) {
+      setSelectedMoodId(Number(emojis[0].emotion_id));
+    }
+  }, [emojis, initialMoodId, isEditing, navigation, selectedMoodId]);
+
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -140,13 +165,11 @@ export default function AddJournalScreen({
 
         setJourneys(data);
 
-        if (emojis.length > 0 && !isEditing && selectedMoodId === null) {
-          if (initialMoodId !== undefined && initialMoodId !== null) {
-            setSelectedMoodId(Number(initialMoodId));
-            navigation.setParams({ initialMoodId: undefined });
-          } else {
-            setSelectedMoodId(Number(emojis[0].emotion_id));
-          }
+        if (!journalId && initialJourneyId) {
+          const initialJourney =
+            data.find((journey) => journey.id === initialJourneyId) || null;
+          setSelectedJourney(initialJourney);
+          navigation.setParams({ initialJourneyId: undefined });
         }
 
         if (journalId && !hasInitializedJournalRef.current) {
@@ -179,7 +202,7 @@ export default function AddJournalScreen({
       return () => {
         isActive = false;
       };
-    }, [journalId, emojis, isEditing, initialMoodId, navigation]),
+    }, [journalId, emojis, initialJourneyId, isEditing, initialMoodId, navigation]),
   );
 
   // Current date & time
@@ -223,14 +246,9 @@ export default function AddJournalScreen({
           const refreshedToken = await refreshAccessToken();
           const token = refreshedToken || accessToken;
           if (!token) {
-            Alert.alert(
-              "Phiên đăng nhập đã hết hạn",
-              "Vui lòng đăng nhập lại để đồng bộ dữ liệu.",
-              [
-                { text: "Huỷ", style: "cancel" },
-                { text: "Đăng nhập lại", onPress: () => promptAsync() },
-              ],
-            );
+            await saveWithManualSync("journal", journalData);
+            clearForm();
+            navigation.goBack();
             return;
           }
           await saveWithAutoSync("journal", journalData, token);
@@ -348,7 +366,7 @@ export default function AddJournalScreen({
               color: colors.text.dark,
             })}
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text.dark }]}>
+          <Text style={[styles.headerTitle, { color: colors.secondary }]}>
             {isEditing ? "Edit Journal" : "New Journal Entry"}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -369,13 +387,58 @@ export default function AddJournalScreen({
         >
           {/* Mood Selector */}
           <View style={styles.section}>
-            <MoodSelector
-              emojis={emojis}
-              loading={loading}
-              selectedMoodId={selectedMoodId}
-              onMoodChange={setSelectedMoodId}
-              horizontal={false}
-            />
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setShowMoodPicker(true)}
+              style={[
+                styles.selectedMoodCard,
+                {
+                  backgroundColor: colors.backgroundCard,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={styles.selectedMoodContent}>
+                {selectedMood?.image ? (
+                  <Image
+                    source={{ uri: selectedMood.image }}
+                    style={styles.selectedMoodIcon}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.selectedMoodPlaceholder,
+                      { backgroundColor: colors.background.soft },
+                    ]}
+                  />
+                )}
+                <View style={styles.selectedMoodTextBlock}>
+                  <Text
+                    style={[
+                      styles.selectedMoodLabel,
+                      { color: colors.text.muted },
+                    ]}
+                  >
+                    {appLanguage === "vi"
+                      ? "Cảm xúc đang chọn"
+                      : "Selected mood"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.selectedMoodName,
+                      { color: colors.secondary },
+                    ]}
+                  >
+                    {selectedMood?.emotion_name ||
+                      (appLanguage === "vi" ? "Chọn cảm xúc" : "Choose mood")}
+                  </Text>
+                </View>
+              </View>
+              {React.createElement(ChevronDown as any, {
+                size: 20,
+                color: colors.primary,
+              })}
+            </TouchableOpacity>
             {/* <View
               style={{
                 flexDirection: "row",
@@ -532,6 +595,9 @@ export default function AddJournalScreen({
                         onPress={() =>
                           navigation.navigate("ImageViewer", {
                             images,
+                            journalIds: images.map(() =>
+                              isEditing ? journalId : undefined,
+                            ),
                             initialIndex: index,
                           })
                         }
@@ -587,6 +653,81 @@ export default function AddJournalScreen({
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        visible={showMoodPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMoodPicker(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowMoodPicker(false)}
+        />
+        <View
+          style={[styles.moodSheet, { backgroundColor: colors.backgroundCard }]}
+        >
+          <View
+            style={[styles.moodSheetHandle, { backgroundColor: colors.border }]}
+          />
+          <Text style={[styles.moodSheetTitle, { color: colors.secondary }]}>
+            {appLanguage === "vi" ? "Chọn cảm xúc" : "Choose mood"}
+          </Text>
+          <Text
+            style={[styles.moodSheetSubtitle, { color: colors.text.muted }]}
+          >
+            {appLanguage === "vi"
+              ? "Chạm vào emoji để cập nhật cảm xúc cho nhật ký này."
+              : "Tap an emoji to update this journal mood."}
+          </Text>
+
+          <FlatList
+            data={emojis}
+            keyExtractor={(item) => String(item.emotion_id || item.id)}
+            numColumns={3}
+            showsVerticalScrollIndicator={false}
+            columnWrapperStyle={styles.moodGridRow}
+            contentContainerStyle={styles.moodGridContent}
+            renderItem={({ item }) => {
+              const emotionId = Number(item.emotion_id || item.id);
+              const isSelected = emotionId === Number(selectedMoodId);
+
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.moodGridItem,
+                    {
+                      backgroundColor: isSelected
+                        ? `${colors.primary}16`
+                        : colors.background.soft,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    setSelectedMoodId(emotionId);
+                    setShowMoodPicker(false);
+                  }}
+                >
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.moodGridIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.moodGridName,
+                      { color: isSelected ? colors.primary : colors.text.dark },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {item.emotion_name || "Mood"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -632,6 +773,43 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: SIZES.spacing.xxl,
     alignItems: "center",
+  },
+  selectedMoodCard: {
+    width: width - SIZES.spacing.xl * 2,
+    borderRadius: SIZES.radius.xxl,
+    borderWidth: 1,
+    paddingHorizontal: SIZES.spacing.l,
+    paddingVertical: SIZES.spacing.m,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  selectedMoodContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SIZES.spacing.m,
+    flex: 1,
+  },
+  selectedMoodIcon: {
+    width: 56,
+    height: 56,
+  },
+  selectedMoodPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  selectedMoodTextBlock: {
+    flex: 1,
+  },
+  selectedMoodLabel: {
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  selectedMoodName: {
+    fontFamily: FONTS.bold,
+    fontSize: 20,
   },
   dateTimeContainer: {
     flexDirection: "row",
@@ -714,5 +892,64 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  moodSheet: {
+    borderTopLeftRadius: SIZES.radius.xxxl,
+    borderTopRightRadius: SIZES.radius.xxxl,
+    paddingHorizontal: SIZES.spacing.xl,
+    paddingTop: SIZES.spacing.l,
+    paddingBottom: 40,
+    maxHeight: "72%",
+  },
+  moodSheetHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: SIZES.spacing.l,
+  },
+  moodSheetTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 20,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  moodSheetSubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: SIZES.spacing.l,
+  },
+  moodGridContent: {
+    paddingBottom: SIZES.spacing.l,
+  },
+  moodGridRow: {
+    justifyContent: "space-between",
+    marginBottom: SIZES.spacing.m,
+  },
+  moodGridItem: {
+    width: (width - SIZES.spacing.xl * 2 - SIZES.spacing.m * 2) / 3,
+    borderRadius: SIZES.radius.xl,
+    borderWidth: 1,
+    paddingVertical: SIZES.spacing.m,
+    paddingHorizontal: SIZES.spacing.s,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 132,
+  },
+  moodGridIcon: {
+    width: 56,
+    height: 56,
+    marginBottom: SIZES.spacing.s,
+  },
+  moodGridName: {
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 18,
   },
 });

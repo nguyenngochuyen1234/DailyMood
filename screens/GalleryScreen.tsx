@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useMood } from "../context/MoodContext";
 import MoodIcon from "../components/MoodIcon";
 import { getJournals } from "../lib/storage";
 import EmptyState from "../components/EmptyState";
+import MonthSelector from "../components/MonthSelector";
 
 const { width } = Dimensions.get("window");
 const numColumns = 3;
@@ -35,6 +36,7 @@ interface GalleryItem {
 export default function GalleryScreen({ navigation }: { navigation: any }) {
   const { colors, backgrounds } = useTheme();
   const { emojis, loading: moodLoading, t } = useMood();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +61,9 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
       });
 
       // Sort by date descending
-      setGalleryItems(items.sort((a, b) => b.date.getTime() - a.date.getTime()));
+      setGalleryItems(
+        items.sort((a, b) => b.date.getTime() - a.date.getTime()),
+      );
     } catch (error) {
       console.error("Error fetching gallery data:", error);
     } finally {
@@ -75,9 +79,24 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
     return unsubscribe;
   }, [navigation]);
 
+  const filteredGalleryItems = useMemo(() => {
+    return galleryItems.filter(
+      (item) =>
+        item.date.getMonth() === currentDate.getMonth() &&
+        item.date.getFullYear() === currentDate.getFullYear(),
+    );
+  }, [currentDate, galleryItems]);
+
+  const changeMonth = (offset: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + offset);
+    setCurrentDate(newDate);
+  };
+
   const handleItemPress = (index: number) => {
     navigation.navigate("ImageViewer", {
-      images: galleryItems.map((galleryItem) => galleryItem.image),
+      images: filteredGalleryItems.map((galleryItem) => galleryItem.image),
+      journalIds: filteredGalleryItems.map((galleryItem) => galleryItem.journalId),
       initialIndex: index,
     });
   };
@@ -89,7 +108,10 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
     item: GalleryItem;
     index: number;
   }) => {
-    const moodIdx = emojis.findIndex((e) => e.id === item.moodId);
+    const moodIdx = emojis.findIndex(
+      (e) =>
+        e.emotion_id === Number(item.moodId) || e.id === Number(item.moodId),
+    );
 
     return (
       <TouchableOpacity
@@ -97,9 +119,11 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
         onPress={() => handleItemPress(index)}
       >
         <Image source={{ uri: item.image }} style={styles.image} />
-        <View style={styles.overlayInfo}>
-          <MoodIcon index={moodIdx} size={20} style={styles.miniMoodIcon} />
-        </View>
+        {moodIdx >= 0 ? (
+          <View style={styles.overlayInfo}>
+            <MoodIcon index={moodIdx} size={36} style={styles.miniMoodIcon} />
+          </View>
+        ) : null}
       </TouchableOpacity>
     );
   };
@@ -118,17 +142,25 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
           >
             <ChevronLeft size={28} color={colors.text.dark} />
           </TouchableOpacity>
-          <Text style={[styles.screenTitle, { color: colors.text.dark }]}>
+          <Text style={[styles.screenTitle, { color: colors.secondary }]}>
             {t("images") || "Bộ sưu tập"}
           </Text>
           <View style={{ width: 40 }} />
+        </View>
+
+        <View style={styles.monthSelectorContainer}>
+          <MonthSelector
+            currentDate={currentDate}
+            onChangeMonth={changeMonth}
+            showDay={false}
+          />
         </View>
 
         {loading || moodLoading ? (
           <View style={styles.centerContainer}>
             <Text style={{ color: colors.text.muted }}>Đang tải...</Text>
           </View>
-        ) : galleryItems.length === 0 ? (
+        ) : filteredGalleryItems.length === 0 ? (
           <View style={styles.emptyContainer}>
             <EmptyState
               title="Chưa có hình ảnh"
@@ -138,7 +170,7 @@ export default function GalleryScreen({ navigation }: { navigation: any }) {
           </View>
         ) : (
           <FlatList
-            data={galleryItems}
+            data={filteredGalleryItems}
             keyExtractor={(item) => item.id}
             numColumns={numColumns}
             showsVerticalScrollIndicator={false}
@@ -170,6 +202,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     fontSize: 22,
   },
+  monthSelectorContainer: {
+    paddingHorizontal: SIZES.spacing.xl,
+    paddingBottom: SIZES.spacing.m,
+  },
   listContent: {
     paddingHorizontal: SIZES.spacing.xl,
     paddingBottom: 100,
@@ -191,15 +227,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 4,
     right: 4,
-    backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 12,
     padding: 2,
     justifyContent: "center",
     alignItems: "center",
   },
   miniMoodIcon: {
-    width: 20,
-    height: 20,
+    width: 36,
+    height: 36,
   },
   centerContainer: {
     flex: 1,

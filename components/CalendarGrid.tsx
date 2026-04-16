@@ -10,6 +10,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 interface CalendarItem {
   day: number;
   moodIndex: number;
+  imageUri?: string | null;
 }
 
 interface CalendarGridProps {
@@ -63,7 +64,12 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
             {displayMode === "icon" ? (
                 <MoodIcon index={item.moodIndex} size={undefined} style={styles.moodIcon} />
             ) : (
-              item.moodIndex >= 0 && mockGallery && mockGallery.length > 0 ? (
+              item.imageUri ? (
+                <Image
+                  source={{ uri: item.imageUri }}
+                  style={styles.image}
+                />
+              ) : item.moodIndex >= 0 && mockGallery && mockGallery.length > 0 ? (
                 <Image
                   source={{
                     uri: mockGallery[item.moodIndex % mockGallery.length]?.image,
